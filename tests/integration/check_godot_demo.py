@@ -39,6 +39,8 @@ contracts = {
         "reset_world",
         "get_gravity_at",
         "is_solid_at",
+        "get_material_at",
+        "extract_circle",
         "paint_circle",
         "add_gravity_source",
         "update_gravity_source",
@@ -48,13 +50,28 @@ contracts = {
     GAME / "scripts" / "demo" / "player_controller.gd": (
         "reset_player",
         "get_cooldown_ratio",
+        "get_state",
+        "take_damage",
+        "add_matter",
     ),
     GAME / "scripts" / "demo" / "starseed.gd": ("setup",),
     GAME / "scripts" / "demo" / "demo_hud.gd": (
         "set_stats",
         "set_cooldown",
         "set_selected_material",
+        "set_selected_seed",
+        "set_player_state",
+        "set_objective",
         "flash_message",
+    ),
+    GAME / "scripts" / "demo" / "demo_enemy.gd": (
+        "setup",
+        "take_damage",
+        "receive_starseed_hit",
+    ),
+    GAME / "scripts" / "demo" / "demo_objective.gd": (
+        "arm",
+        "accept_starseed",
     ),
 }
 

@@ -125,6 +125,46 @@ func is_solid_at(world_pos: Vector2) -> bool:
 	)
 
 
+func get_material_at(world_pos: Vector2) -> int:
+	var cell := _local_to_cell(to_local(world_pos))
+	if not _is_in_bounds(cell.x, cell.y):
+		return CellMaterial.AIR
+	return _material_at(cell.x, cell.y)
+
+
+func extract_circle(world_pos: Vector2, radius_cells: int) -> Dictionary:
+	var center := _local_to_cell(to_local(world_pos))
+	var radius := maxi(radius_cells, 0)
+	var radius_squared := radius * radius
+	var extracted := {
+		"total": 0,
+		"rock": 0,
+		"sand": 0,
+		"metal": 0,
+	}
+	for y in range(maxi(0, center.y - radius), mini(GRID_HEIGHT, center.y + radius + 1)):
+		for x in range(maxi(0, center.x - radius), mini(GRID_WIDTH, center.x + radius + 1)):
+			var dx := x - center.x
+			var dy := y - center.y
+			if dx * dx + dy * dy > radius_squared:
+				continue
+			var material := _material_at(x, y)
+			match material:
+				CellMaterial.ROCK:
+					extracted["rock"] += 1
+				CellMaterial.SAND:
+					extracted["sand"] += 1
+				CellMaterial.METAL:
+					extracted["metal"] += 1
+				_:
+					continue
+			extracted["total"] += 1
+			_set_material(x, y, CellMaterial.AIR)
+	if int(extracted["total"]) > 0:
+		_mark_changed()
+	return extracted
+
+
 func paint_circle(world_pos: Vector2, radius_cells: int, material_id: int) -> void:
 	if material_id < CellMaterial.AIR or material_id > CellMaterial.METAL:
 		return

@@ -1,42 +1,68 @@
 class_name DemoPlayerController
 extends Node2D
 
-## Lightweight controller for the early material/gravity demo.
-##
-## The player intentionally does not depend on CharacterBody2D or a scene resource.  Collision is
-## sampled directly from MaterialWorld so the controller can walk on destructible pixel terrain.
+## Gravity-aligned controller used by the playable vertical slice.
+## Collision is sampled from MaterialWorld so mined terrain immediately affects movement.
 
-signal starseed_requested(origin: Vector2, velocity: Vector2)
+signal starseed_requested(origin: Vector2, velocity: Vector2, seed_type: String)
+signal extractor_requested(origin: Vector2, direction: Vector2)
+signal state_changed(state: Dictionary)
+signal action_denied(reason: String)
+signal died
 
 @export var material_world_path: NodePath
 @export var walk_speed: float = 62.0
 @export var ground_acceleration: float = 520.0
 @export var air_acceleration: float = 175.0
 @export var jump_speed: float = 116.0
-@export var terminal_speed: float = 235.0
-@export var starseed_speed: float = 155.0
-@export var fire_cooldown: float = 0.38
+@export var terminal_speed: float = 255.0
+@export var starseed_speed: float = 170.0
+@export var fire_cooldown: float = 0.42
+@export var boost_acceleration: float = 185.0
 
+const MAX_HEALTH := 100.0
+const MAX_ENERGY := 120.0
+const MAX_MATTER := 100.0
+const GROUND_ENERGY_RECOVERY := 24.0
+const AIR_ENERGY_RECOVERY := 9.0
+const BOOST_ENERGY_COST := 35.0
+const EXTRACT_ENERGY_COST := 2.0
+const EXTRACT_INTERVAL := 0.11
 const HALF_WIDTH := 3.0
 const HALF_HEIGHT := 6.0
 const COLLISION_STEP := 0.75
 const MIN_GRAVITY := 0.001
 
+const SEED_COSTS := {
+	"gravity": {"energy": 30.0, "matter": 12.0},
+	"steam": {"energy": 24.0, "matter": 16.0},
+	"rupture": {"energy": 38.0, "matter": 20.0},
+}
+
 var velocity := Vector2.ZERO
+var health := MAX_HEALTH
+var energy := MAX_ENERGY
+var matter := 48.0
+var active := true
 
 var _material_world: Node
 var _up_direction := Vector2.UP
 var _tangent_direction := Vector2.RIGHT
 var _aim_direction := Vector2.RIGHT
 var _grounded := false
+var _selected_starseed_type := "gravity"
 var _fire_time_left := 0.0
+var _extract_time_left := 0.0
+var _invulnerability_left := 0.0
 var _fire_was_down := false
 var _jump_was_down := false
+var _last_state_signature := ""
 
 
 func _ready() -> void:
 	if not material_world_path.is_empty():
 		_material_world = get_node_or_null(material_world_path)
+	_emit_state_if_changed(true)
 	queue_redraw()
 
 
@@ -47,9 +73,17 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_fire_time_left = maxf(0.0, _fire_time_left - delta)
+	_extract_time_left = maxf(0.0, _extract_time_left - delta)
+	_invulnerability_left = maxf(0.0, _invulnerability_left - delta)
 	_update_gravity_basis()
 	_update_aim()
 	_grounded = _is_grounded()
+
+	if not active:
+		velocity = velocity.move_toward(Vector2.ZERO, 180.0 * delta)
+		_move_pixel_body(velocity * delta)
+		queue_redraw()
+		return
 
 	var move_input := _read_move_axis()
 	var tangent_speed := velocity.dot(_tangent_direction)
@@ -65,26 +99,90 @@ func _physics_process(delta: float) -> void:
 	var gravity := _get_gravity(global_position)
 	velocity = _tangent_direction * tangent_speed + _up_direction * vertical_speed
 	velocity += gravity * delta
+	_handle_boost(delta)
 	velocity = velocity.limit_length(terminal_speed)
 	_move_pixel_body(velocity * delta)
 	_handle_fire_input()
+	_handle_extractor_input()
+	_recover_energy(delta)
+	_emit_state_if_changed()
 	queue_redraw()
 
 
 func reset_player(world_position: Vector2) -> void:
 	global_position = world_position
 	velocity = Vector2.ZERO
+	health = MAX_HEALTH
+	energy = MAX_ENERGY
+	matter = 48.0
+	active = true
 	_grounded = false
 	_fire_time_left = 0.0
+	_extract_time_left = 0.0
+	_invulnerability_left = 0.0
 	_fire_was_down = false
 	_jump_was_down = false
+	_emit_state_if_changed(true)
 	queue_redraw()
+
+
+func set_starseed_type(seed_type: String) -> void:
+	if SEED_COSTS.has(seed_type):
+		_selected_starseed_type = seed_type
+		_emit_state_if_changed(true)
+
+
+func set_active(value: bool) -> void:
+	active = value
+	_fire_was_down = false
+	_jump_was_down = false
+	_emit_state_if_changed(true)
+
+
+func take_damage(amount: float, impulse: Vector2 = Vector2.ZERO) -> bool:
+	if not active or amount <= 0.0 or _invulnerability_left > 0.0:
+		return false
+	health = maxf(0.0, health - amount)
+	velocity += impulse
+	_invulnerability_left = 0.48
+	_emit_state_if_changed(true)
+	queue_redraw()
+	if health <= 0.0:
+		active = false
+		died.emit()
+	return true
+
+
+func heal(amount: float) -> void:
+	health = minf(MAX_HEALTH, health + maxf(amount, 0.0))
+	_emit_state_if_changed(true)
+
+
+func add_matter(amount: float) -> float:
+	var before := matter
+	matter = clampf(matter + amount, 0.0, MAX_MATTER)
+	_emit_state_if_changed(true)
+	return matter - before
 
 
 func get_cooldown_ratio() -> float:
 	if fire_cooldown <= 0.0:
 		return 1.0
 	return 1.0 - clampf(_fire_time_left / fire_cooldown, 0.0, 1.0)
+
+
+func get_state() -> Dictionary:
+	return {
+		"health": health,
+		"max_health": MAX_HEALTH,
+		"energy": energy,
+		"max_energy": MAX_ENERGY,
+		"matter": matter,
+		"max_matter": MAX_MATTER,
+		"grounded": _grounded,
+		"active": active,
+		"seed_type": _selected_starseed_type,
+	}
 
 
 func set_material_world(world: Node) -> void:
@@ -125,18 +223,66 @@ func _consume_jump_pressed() -> bool:
 	return just_pressed
 
 
+func _handle_boost(delta: float) -> void:
+	if not Input.is_key_pressed(KEY_SHIFT) or energy <= 0.0:
+		return
+	var spent := minf(energy, BOOST_ENERGY_COST * delta)
+	energy -= spent
+	velocity += _aim_direction * boost_acceleration * delta * (spent / maxf(BOOST_ENERGY_COST * delta, 0.001))
+
+
+func _recover_energy(delta: float) -> void:
+	if Input.is_key_pressed(KEY_SHIFT):
+		return
+	var recovery := GROUND_ENERGY_RECOVERY if _grounded else AIR_ENERGY_RECOVERY
+	energy = minf(MAX_ENERGY, energy + recovery * delta)
+
+
 func _handle_fire_input() -> void:
 	var fire_down := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_key_pressed(KEY_F)
 	if fire_down and not _fire_was_down and _fire_time_left <= 0.0:
-		var muzzle := global_position + _aim_direction * 9.0
-		starseed_requested.emit(muzzle, _aim_direction * starseed_speed + velocity * 0.25)
-		_fire_time_left = fire_cooldown
+		var cost: Dictionary = SEED_COSTS[_selected_starseed_type]
+		if energy < float(cost["energy"]):
+			action_denied.emit("核力不足")
+		elif matter < float(cost["matter"]):
+			action_denied.emit("物质不足：使用右键采掘")
+		else:
+			energy -= float(cost["energy"])
+			matter -= float(cost["matter"])
+			var muzzle := global_position + _aim_direction * 9.0
+			starseed_requested.emit(
+				muzzle,
+				_aim_direction * starseed_speed + velocity * 0.25,
+				_selected_starseed_type
+			)
+			_fire_time_left = fire_cooldown
+			_emit_state_if_changed(true)
 	_fire_was_down = fire_down
 
 
+func _handle_extractor_input() -> void:
+	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or _extract_time_left > 0.0:
+		return
+	if energy < EXTRACT_ENERGY_COST:
+		action_denied.emit("核力不足")
+		_extract_time_left = EXTRACT_INTERVAL
+		return
+	energy -= EXTRACT_ENERGY_COST
+	_extract_time_left = EXTRACT_INTERVAL
+	extractor_requested.emit(global_position + _aim_direction * 8.0, _aim_direction)
+
+
+func _emit_state_if_changed(force: bool = false) -> void:
+	var state := get_state()
+	var signature := "%d:%d:%d:%s:%s" % [
+		roundi(health), roundi(energy), roundi(matter), _selected_starseed_type, str(active)
+	]
+	if force or signature != _last_state_signature:
+		_last_state_signature = signature
+		state_changed.emit(state)
+
+
 func _move_pixel_body(displacement: Vector2) -> void:
-	# Sweep in sub-pixel steps.  Resolve tangent and radial motion separately so the body naturally
-	# slides along curved surfaces instead of sticking on the first diagonal sample.
 	var tangent_motion := _tangent_direction * displacement.dot(_tangent_direction)
 	var radial_motion := _up_direction * displacement.dot(_up_direction)
 	_sweep_component(tangent_motion, true)
@@ -160,7 +306,6 @@ func _sweep_component(motion: Vector2, tangent_component: bool) -> void:
 
 
 func _solid_body_at(center: Vector2) -> bool:
-	# Nine samples approximate a small gravity-aligned capsule while keeping collision queries cheap.
 	var horizontal := _tangent_direction * HALF_WIDTH
 	var vertical := _up_direction * HALF_HEIGHT
 	return (
@@ -201,18 +346,21 @@ func _is_solid(world_position: Vector2) -> bool:
 
 
 func _draw() -> void:
-	# All points are local-space vectors but remain aligned to the current gravity basis.
+	var alpha := 0.35 if _invulnerability_left > 0.0 and int(_invulnerability_left * 30.0) % 2 == 0 else 1.0
 	var h := _tangent_direction * HALF_WIDTH
 	var v := _up_direction * HALF_HEIGHT
 	var body := PackedVector2Array([-h - v, h - v, h + v, -h + v])
-	draw_colored_polygon(body, Color("d9e2d0"))
+	draw_colored_polygon(body, Color(0.85, 0.89, 0.82, alpha))
 	draw_polyline(
-		PackedVector2Array([body[0], body[1], body[2], body[3], body[0]]), Color("35423d"), 1.0
+		PackedVector2Array([body[0], body[1], body[2], body[3], body[0]]),
+		Color(0.21, 0.26, 0.24, alpha),
+		1.0
 	)
-
 	var visor_center := _up_direction * 1.5 + _aim_direction * 1.3
-	draw_circle(visor_center, 1.6, Color("75e7dd"))
+	draw_circle(visor_center, 1.6, Color(0.46, 0.91, 0.87, alpha))
 	draw_line(_aim_direction * 7.0, _aim_direction * 18.0, Color(0.46, 0.91, 0.87, 0.7), 1.0)
+	if Input.is_key_pressed(KEY_SHIFT) and active:
+		draw_line(-_aim_direction * 5.0, -_aim_direction * 11.0, Color("ff9b42"), 2.0)
 	if _fire_time_left > 0.0:
 		draw_arc(
 			Vector2.ZERO,

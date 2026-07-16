@@ -1,9 +1,10 @@
 class_name DemoStarseed
 extends Node2D
 
-## A throwable seed that turns into a temporary local gravity source when it hits material.
+## Throwable micro-world with three prototype forms: attraction, steam and repulsion.
 
 signal anchored(position: Vector2)
+signal impacted(position: Vector2, seed_type: String)
 signal expired
 
 @export var gravity_strength: float = 155.0
@@ -11,11 +12,14 @@ signal expired
 @export var anchored_lifetime: float = 7.0
 @export var maximum_flight_time: float = 6.0
 @export var collision_radius: float = 2.0
-@export var terminal_speed: float = 260.0
+@export var terminal_speed: float = 280.0
 
 const SWEEP_STEP := 1.0
+const MATERIAL_WATER := 3
+const MATERIAL_STEAM := 8
 
 var velocity := Vector2.ZERO
+var seed_type := "gravity"
 
 var _material_world: Node
 var _gravity_source_id := -1
@@ -26,16 +30,35 @@ var _cleaned_up := false
 var _trail := PackedVector2Array()
 
 
-func setup(world: Node, origin: Vector2, initial_velocity: Vector2) -> void:
+func setup(
+	world: Node,
+	origin: Vector2,
+	initial_velocity: Vector2,
+	requested_type: String = "gravity"
+) -> void:
 	_material_world = world
 	global_position = origin
 	velocity = initial_velocity
+	seed_type = requested_type if requested_type in ["gravity", "steam", "rupture"] else "gravity"
 	_age = 0.0
 	_anchor_age = 0.0
 	_is_anchored = false
 	_cleaned_up = false
 	_gravity_source_id = -1
 	_trail.clear()
+	match seed_type:
+		"steam":
+			gravity_strength = 45.0
+			gravity_radius = 48.0
+			anchored_lifetime = 0.7
+		"rupture":
+			gravity_strength = -205.0
+			gravity_radius = 92.0
+			anchored_lifetime = 3.6
+		_:
+			gravity_strength = 155.0
+			gravity_radius = 105.0
+			anchored_lifetime = 7.0
 	add_to_group("starseeds")
 	queue_redraw()
 
@@ -44,7 +67,6 @@ func _physics_process(delta: float) -> void:
 	if _cleaned_up:
 		return
 	_age += delta
-
 	if _is_anchored:
 		_anchor_age += delta
 		if (
@@ -88,10 +110,92 @@ func _sweep_flight(displacement: Vector2) -> void:
 	var step := displacement / float(steps)
 	for _index in range(steps):
 		var candidate := global_position + step
+		if _try_objective_hit(candidate):
+			return
+		var enemy := _enemy_at(candidate)
+		if is_instance_valid(enemy):
+			global_position = candidate
+			_impact_enemy(enemy)
+			return
 		if _hits_solid(candidate):
-			_anchor()
+			global_position = candidate
+			_impact_world()
 			return
 		global_position = candidate
+
+
+func _try_objective_hit(candidate: Vector2) -> bool:
+	for objective in get_tree().get_nodes_in_group("objectives"):
+		if not is_instance_valid(objective):
+			continue
+		var radius := float(objective.get("collision_radius"))
+		if candidate.distance_to(objective.global_position) > collision_radius + radius:
+			continue
+		if objective.has_method("accept_starseed") and bool(objective.call("accept_starseed", seed_type)):
+			global_position = objective.global_position
+			impacted.emit(global_position, seed_type)
+			_expire()
+			return true
+	return false
+
+
+func _enemy_at(candidate: Vector2) -> Node:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		var radius := float(enemy.get("collision_radius"))
+		if candidate.distance_to(enemy.global_position) <= collision_radius + radius:
+			return enemy
+	return null
+
+
+func _impact_enemy(enemy: Node) -> void:
+	var direction := velocity.normalized()
+	if enemy.has_method("receive_starseed_hit"):
+		enemy.call("receive_starseed_hit", seed_type, velocity.length(), direction)
+	if seed_type == "steam":
+		_spawn_steam_burst()
+		impacted.emit(global_position, seed_type)
+		_expire()
+	elif seed_type == "rupture":
+		_apply_rupture_burst()
+		_anchor()
+	else:
+		_anchor()
+
+
+func _impact_world() -> void:
+	if seed_type == "steam":
+		_spawn_steam_burst()
+		impacted.emit(global_position, seed_type)
+		_expire()
+		return
+	if seed_type == "rupture":
+		_apply_rupture_burst()
+	_anchor()
+
+
+func _spawn_steam_burst() -> void:
+	if not is_instance_valid(_material_world):
+		return
+	_material_world.paint_circle(global_position, 2, MATERIAL_WATER)
+	for offset in [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN]:
+		_material_world.paint_circle(global_position + offset * 8.0, 2, MATERIAL_STEAM)
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(enemy) and global_position.distance_to(enemy.global_position) <= 46.0:
+			enemy.take_damage(12.0, (enemy.global_position - global_position).normalized() * 20.0, "steam")
+
+
+func _apply_rupture_burst() -> void:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(enemy):
+			continue
+		var distance: float = global_position.distance_to(enemy.global_position)
+		if distance > 72.0:
+			continue
+		var direction: Vector2 = (enemy.global_position - global_position).normalized()
+		var falloff: float = 1.0 - distance / 72.0
+		enemy.take_damage(12.0 * falloff, direction * (95.0 * falloff), "gravity")
 
 
 func _hits_solid(center: Vector2) -> bool:
@@ -126,6 +230,7 @@ func _anchor() -> void:
 			)
 		)
 	anchored.emit(global_position)
+	impacted.emit(global_position, seed_type)
 	queue_redraw()
 
 
@@ -160,38 +265,34 @@ func _exit_tree() -> void:
 
 
 func _draw() -> void:
+	var color := Color("ffb04a")
+	var core := Color("fff0b5")
+	match seed_type:
+		"steam":
+			color = Color("73d9ed")
+			core = Color("e7fbff")
+		"rupture":
+			color = Color("d176ef")
+			core = Color("f6d6ff")
 	if not _trail.is_empty() and not _is_anchored:
 		var local_trail := PackedVector2Array()
 		for world_point in _trail:
 			local_trail.append(to_local(world_point))
 		local_trail.append(Vector2.ZERO)
 		if local_trail.size() >= 2:
-			draw_polyline(local_trail, Color(0.95, 0.57, 0.24, 0.45), 1.0)
+			draw_polyline(local_trail, Color(color, 0.45), 1.0)
 
 	if not _is_anchored:
-		draw_circle(Vector2.ZERO, collision_radius + 1.0, Color("ffb04a"))
-		draw_circle(Vector2.ZERO, 1.0, Color("fff0b5"))
+		draw_circle(Vector2.ZERO, collision_radius + 1.0, color)
+		draw_circle(Vector2.ZERO, 1.0, core)
 		return
 
 	var pulse := 0.5 + 0.5 * sin(_anchor_age * 8.0)
 	var core_radius := 3.0 + pulse * 1.2
-	draw_circle(Vector2.ZERO, core_radius, Color("ffc857"))
-	draw_circle(Vector2.ZERO, 1.5, Color("fff4bc"))
+	draw_circle(Vector2.ZERO, core_radius, color)
+	draw_circle(Vector2.ZERO, 1.5, core)
 	for index in range(3):
 		var phase := fmod(_anchor_age * 0.65 + float(index) / 3.0, 1.0)
 		var radius := lerpf(8.0, 25.0, phase)
 		var alpha := (1.0 - phase) * 0.65
-		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 40, Color(1.0, 0.65, 0.25, alpha), 1.0)
-
-	var orbit_angle := _anchor_age * 2.4
-	var orbit_position := Vector2.from_angle(orbit_angle) * 12.0
-	draw_arc(
-		Vector2.ZERO,
-		12.0,
-		orbit_angle - 1.8,
-		orbit_angle + 0.35,
-		18,
-		Color(0.45, 0.93, 0.88, 0.55),
-		1.0
-	)
-	draw_circle(orbit_position, 1.4, Color("73ece1"))
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 40, Color(color, alpha), 1.0)
