@@ -26,7 +26,7 @@ func _run() -> void:
 	starseed.setup(world, Vector2(320.0, 4.0), Vector2(0.0, 120.0))
 
 	for _frame in range(120):
-		await process_frame
+		await physics_frame
 
 	var stats: Dictionary = world.get_stats()
 	if int(stats.get("tick", 0)) < 30:
