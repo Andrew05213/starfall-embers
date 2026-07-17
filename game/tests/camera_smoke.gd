@@ -29,6 +29,9 @@ func _run() -> void:
 	if not camera.enabled:
 		_fail("GravityCamera is not enabled")
 		return
+	if camera.ignore_rotation:
+		_fail("GravityCamera ignores rotation, so local up cannot remain screen-up")
+		return
 	if minf(camera.zoom.x, camera.zoom.y) < 1.5:
 		_fail("camera zoom does not present the asteroid as a local surface: %s" % camera.zoom)
 		return
@@ -47,6 +50,9 @@ func _run() -> void:
 	if not _camera_matches_player_up(camera, player):
 		_fail("camera does not align the top-spawn gravity direction")
 		return
+	if not _viewport_maps_local_up_to_screen_up(demo, player):
+		_fail("viewport transform does not apply camera rotation at the top spawn")
+		return
 
 	player.reset_player(RIGHT_SPAWN)
 	for _frame in range(SETTLE_FRAMES):
@@ -64,6 +70,9 @@ func _run() -> void:
 			% [camera.rotation, player.get_up_direction()]
 		)
 		return
+	if not _viewport_maps_local_up_to_screen_up(demo, player):
+		_fail("viewport transform does not map right-side local up to screen up")
+		return
 
 	print(
 		"camera smoke: PASS zoom=",
@@ -78,6 +87,12 @@ func _camera_matches_player_up(camera: Camera2D, player: Node2D) -> bool:
 	var up: Vector2 = player.get_up_direction()
 	var expected := up.angle() + PI * 0.5
 	return absf(wrapf(camera.rotation - expected, -PI, PI)) <= ANGLE_TOLERANCE
+
+
+func _viewport_maps_local_up_to_screen_up(demo: Node, player: Node2D) -> bool:
+	var canvas_transform := demo.get_viewport().get_canvas_transform()
+	var screen_up := canvas_transform.basis_xform(player.get_up_direction()).normalized()
+	return screen_up.dot(Vector2.UP) >= cos(ANGLE_TOLERANCE)
 
 
 func _fail(message: String) -> void:

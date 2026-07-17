@@ -21,6 +21,7 @@ material_world_path = NodePath("../MaterialWorld")
 [node name="GravityCamera" type="Camera2D" parent="."]
 position = Vector2(320, 10)
 zoom = Vector2(2, 2)
+ignore_rotation = false
 enabled = true
 script = ExtResource("5_camera")
 target_path = NodePath("../Player")
