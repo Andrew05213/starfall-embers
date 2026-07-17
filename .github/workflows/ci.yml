@@ -57,3 +57,8 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/gameplay_smoke.gd
+
+      - name: Run gravity-aligned movement smoke test
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/movement_smoke.gd

@@ -32,6 +32,9 @@ const HALF_WIDTH := 3.0
 const HALF_HEIGHT := 6.0
 const COLLISION_STEP := 0.75
 const MIN_GRAVITY := 0.001
+const STEP_HEIGHT := 4.5
+const SURFACE_SNAP_DISTANCE := 4.5
+const DEPENETRATION_DISTANCE := 24.0
 
 const SEED_COSTS := {
 	"gravity": {"energy": 30.0, "matter": 12.0},
@@ -55,13 +58,14 @@ var _fire_time_left := 0.0
 var _extract_time_left := 0.0
 var _invulnerability_left := 0.0
 var _fire_was_down := false
-var _jump_was_down := false
 var _last_state_signature := ""
 
 
 func _ready() -> void:
-	if not material_world_path.is_empty():
-		_material_world = get_node_or_null(material_world_path)
+	_resolve_material_world()
+	if is_instance_valid(_material_world):
+		_update_gravity_basis()
+		_resolve_initial_overlap()
 	_emit_state_if_changed(true)
 	queue_redraw()
 
@@ -86,6 +90,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var move_input := _read_move_axis()
+	var was_grounded := _grounded
 	var tangent_speed := velocity.dot(_tangent_direction)
 	var acceleration := ground_acceleration if _grounded else air_acceleration
 	tangent_speed = move_toward(tangent_speed, move_input * walk_speed, acceleration * delta)
@@ -93,7 +98,8 @@ func _physics_process(delta: float) -> void:
 	var vertical_speed := velocity.dot(_up_direction)
 	if _grounded and vertical_speed < 0.0:
 		vertical_speed = 0.0
-	if _consume_jump_pressed() and _grounded:
+	var jumped := _consume_jump_pressed() and _grounded
+	if jumped:
 		vertical_speed = jump_speed
 
 	var gravity := _get_gravity(global_position)
@@ -101,7 +107,7 @@ func _physics_process(delta: float) -> void:
 	velocity += gravity * delta
 	_handle_boost(delta)
 	velocity = velocity.limit_length(terminal_speed)
-	_move_pixel_body(velocity * delta)
+	_move_pixel_body(velocity * delta, was_grounded and not jumped)
 	_handle_fire_input()
 	_handle_extractor_input()
 	_recover_energy(delta)
@@ -121,7 +127,11 @@ func reset_player(world_position: Vector2) -> void:
 	_extract_time_left = 0.0
 	_invulnerability_left = 0.0
 	_fire_was_down = false
-	_jump_was_down = false
+	if not is_instance_valid(_material_world):
+		_resolve_material_world()
+	if is_instance_valid(_material_world):
+		_update_gravity_basis()
+		_resolve_initial_overlap()
 	_emit_state_if_changed(true)
 	queue_redraw()
 
@@ -135,7 +145,6 @@ func set_starseed_type(seed_type: String) -> void:
 func set_active(value: bool) -> void:
 	active = value
 	_fire_was_down = false
-	_jump_was_down = false
 	_emit_state_if_changed(true)
 
 
@@ -192,6 +201,10 @@ func set_material_world(world: Node) -> void:
 func _resolve_material_world() -> void:
 	if not material_world_path.is_empty():
 		_material_world = get_node_or_null(material_world_path)
+	if not is_instance_valid(_material_world):
+		var parent := get_parent()
+		if is_instance_valid(parent):
+			_material_world = parent.get_node_or_null("MaterialWorld")
 
 
 func _update_gravity_basis() -> void:
@@ -208,19 +221,11 @@ func _update_aim() -> void:
 
 
 func _read_move_axis() -> float:
-	var axis := 0.0
-	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
-		axis -= 1.0
-	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
-		axis += 1.0
-	return axis
+	return Input.get_axis("move_left", "move_right")
 
 
 func _consume_jump_pressed() -> bool:
-	var jump_down := Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_W)
-	var just_pressed := jump_down and not _jump_was_down
-	_jump_was_down = jump_down
-	return just_pressed
+	return Input.is_action_just_pressed("jump")
 
 
 func _handle_boost(delta: float) -> void:
@@ -282,14 +287,46 @@ func _emit_state_if_changed(force: bool = false) -> void:
 		state_changed.emit(state)
 
 
-func _move_pixel_body(displacement: Vector2) -> void:
+func _move_pixel_body(displacement: Vector2, allow_surface_snap: bool = false) -> void:
 	var tangent_motion := _tangent_direction * displacement.dot(_tangent_direction)
 	var radial_motion := _up_direction * displacement.dot(_up_direction)
-	_sweep_component(tangent_motion, true)
-	_sweep_component(radial_motion, false)
+	_sweep_tangent(tangent_motion)
+	_sweep_component(radial_motion)
+	if allow_surface_snap:
+		_snap_to_surface()
 
 
-func _sweep_component(motion: Vector2, tangent_component: bool) -> void:
+func _sweep_tangent(motion: Vector2) -> void:
+	var distance := motion.length()
+	if distance <= 0.0001:
+		return
+	var steps := maxi(1, ceili(distance / COLLISION_STEP))
+	var step := motion / float(steps)
+	for _index in range(steps):
+		if not _solid_body_at(global_position + step):
+			global_position += step
+			continue
+		if _try_step_up(step):
+			continue
+		velocity -= _tangent_direction * velocity.dot(_tangent_direction)
+		return
+
+
+func _try_step_up(tangent_step: Vector2) -> bool:
+	var lift := COLLISION_STEP
+	while lift <= STEP_HEIGHT + 0.001:
+		var lifted_position := global_position + _up_direction * lift
+		if (
+			not _solid_body_at(lifted_position)
+			and not _solid_body_at(lifted_position + tangent_step)
+		):
+			global_position = lifted_position + tangent_step
+			return true
+		lift += COLLISION_STEP
+	return false
+
+
+func _sweep_component(motion: Vector2) -> void:
 	var distance := motion.length()
 	if distance <= 0.0001:
 		return
@@ -297,12 +334,37 @@ func _sweep_component(motion: Vector2, tangent_component: bool) -> void:
 	var step := motion / float(steps)
 	for _index in range(steps):
 		if _solid_body_at(global_position + step):
-			if tangent_component:
-				velocity -= _tangent_direction * velocity.dot(_tangent_direction)
-			else:
-				velocity -= _up_direction * velocity.dot(_up_direction)
+			velocity -= _up_direction * velocity.dot(_up_direction)
 			return
 		global_position += step
+
+
+func _snap_to_surface() -> void:
+	if _is_grounded():
+		return
+	var down := -_up_direction
+	var travelled := 0.0
+	var last_free := global_position
+	while travelled < SURFACE_SNAP_DISTANCE:
+		var amount := minf(COLLISION_STEP, SURFACE_SNAP_DISTANCE - travelled)
+		var candidate := global_position + down * amount
+		if _solid_body_at(candidate):
+			global_position = last_free
+			velocity -= _up_direction * minf(velocity.dot(_up_direction), 0.0)
+			return
+		global_position = candidate
+		last_free = candidate
+		travelled += amount
+		if _is_grounded():
+			velocity -= _up_direction * minf(velocity.dot(_up_direction), 0.0)
+			return
+
+
+func _resolve_initial_overlap() -> void:
+	var travelled := 0.0
+	while _solid_body_at(global_position) and travelled < DEPENETRATION_DISTANCE:
+		global_position += _up_direction * COLLISION_STEP
+		travelled += COLLISION_STEP
 
 
 func _solid_body_at(center: Vector2) -> bool:
