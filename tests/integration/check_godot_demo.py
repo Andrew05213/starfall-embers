@@ -81,6 +81,47 @@ for path, functions in contracts.items():
         if re.search(rf"^func\s+{re.escape(function)}\s*\(", source, re.MULTILINE) is None:
             fail(f"{path.relative_to(ROOT)} lacks func {function}()")
 
+
+material_world_path = GAME / "scripts" / "simulation" / "material_world.gd"
+material_source = require_text(material_world_path)
+material_enum_match = re.search(
+    r"enum\s+CellMaterial\s*\{(?P<body>.*?)\}", material_source, re.DOTALL
+)
+if material_enum_match is None:
+    fail("material_world.gd lacks enum CellMaterial")
+
+parsed_materials: list[tuple[str, int]] = []
+next_value = 0
+for raw_entry in material_enum_match.group("body").split(","):
+    entry = raw_entry.split("#", 1)[0].strip()
+    if not entry:
+        continue
+    entry_match = re.fullmatch(r"([A-Z][A-Z0-9_]*)(?:\s*=\s*(\d+))?", entry)
+    if entry_match is None:
+        fail(f"cannot parse CellMaterial entry: {entry!r}")
+    name, explicit_value = entry_match.groups()
+    value = int(explicit_value) if explicit_value is not None else next_value
+    parsed_materials.append((name, value))
+    next_value = value + 1
+
+expected_materials = [
+    ("AIR", 0),
+    ("ROCK", 1),
+    ("SAND", 2),
+    ("WATER", 3),
+    ("OIL", 4),
+    ("FIRE", 5),
+    ("SMOKE", 6),
+    ("LAVA", 7),
+    ("STEAM", 8),
+    ("METAL", 9),
+]
+if parsed_materials != expected_materials:
+    fail(
+        "CellMaterial transport IDs drifted: "
+        f"expected {expected_materials!r}, got {parsed_materials!r}"
+    )
+
 main_source = require_text(GAME / "scripts" / "main.gd")
 for action in ("move_left", "move_right", "jump", "fire_starseed"):
     if f'{action}={{' not in project:
