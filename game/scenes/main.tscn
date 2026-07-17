@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource path="res://scripts/main.gd" type="Script" id="1_main"]
 [ext_resource path="res://scripts/simulation/material_world.gd" type="Script" id="2_world"]
 [ext_resource path="res://scripts/demo/player_controller.gd" type="Script" id="3_player"]
 [ext_resource path="res://scripts/demo/demo_hud.gd" type="Script" id="4_hud"]
+[ext_resource path="res://scripts/demo/gravity_camera.gd" type="Script" id="5_camera"]
 
 [node name="Demo" type="Node2D"]
 script = ExtResource("1_main")
@@ -16,6 +17,13 @@ z_index = 10
 position = Vector2(320, 10)
 script = ExtResource("3_player")
 material_world_path = NodePath("../MaterialWorld")
+
+[node name="GravityCamera" type="Camera2D" parent="."]
+position = Vector2(320, 10)
+zoom = Vector2(2, 2)
+enabled = true
+script = ExtResource("5_camera")
+target_path = NodePath("../Player")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = 20
