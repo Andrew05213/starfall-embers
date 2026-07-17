@@ -180,6 +180,11 @@ func get_cooldown_ratio() -> float:
 	return 1.0 - clampf(_fire_time_left / fire_cooldown, 0.0, 1.0)
 
 
+func get_up_direction() -> Vector2:
+	## Read-only gravity basis for presentation systems such as the follow camera.
+	return _up_direction
+
+
 func get_state() -> Dictionary:
 	return {
 		"health": health,
