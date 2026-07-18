@@ -253,7 +253,7 @@ func _test_radial_projectile_gravity_and_spawn_interpolation() -> bool:
 	var profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
 	profile.projectile_gravity_scale = 1.0
 	var projectiles: Array[Node] = []
-	var cardinal_spawns := [
+	var cardinal_spawns: Array[Vector2] = [
 		Vector2(0.0, -1000.0),
 		Vector2(1000.0, 0.0),
 		Vector2(0.0, 1000.0),
@@ -261,7 +261,7 @@ func _test_radial_projectile_gravity_and_spawn_interpolation() -> bool:
 	]
 	for spawn in cardinal_spawns:
 		world.samples.clear()
-		var inward := (world.center - spawn).normalized()
+		var inward: Vector2 = (world.center - spawn).normalized()
 		var tangent := Vector2(-inward.y, inward.x)
 		var projectile := ProjectileInterpolationProbe.new()
 		root.add_child(projectile)
@@ -302,9 +302,11 @@ func _test_radial_projectile_gravity_and_spawn_interpolation() -> bool:
 
 		# GravityFollowCamera rotates the world by the inverse of its desired
 		# rotation. Every cardinal inward vector must therefore become screen-down.
-		var local_up := -inward
-		var camera_rotation := local_up.angle() + PI * 0.5
-		var screen_gravity := Transform2D(-camera_rotation, Vector2.ZERO).basis_xform(inward)
+		var local_up: Vector2 = -inward
+		var camera_rotation: float = local_up.angle() + PI * 0.5
+		var screen_gravity: Vector2 = (
+			Transform2D(-camera_rotation, Vector2.ZERO).basis_xform(inward)
+		)
 		if screen_gravity.y <= 0.999 or absf(screen_gravity.x) > EPSILON:
 			_cleanup_nodes(projectiles + [world])
 			return _fail_bool(
@@ -344,13 +346,14 @@ func _test_ballistic_particle_pool() -> bool:
 	var radial_world := RadialGravity.new()
 	root.add_child(radial_world)
 	particles.bind_material_world(radial_world)
-	for spawn in [
+	var particle_spawns: Array[Vector2] = [
 		Vector2(0.0, -1000.0),
 		Vector2(1000.0, 0.0),
 		Vector2(0.0, 1000.0),
 		Vector2(-1000.0, 0.0),
-	]:
-		var inward := (radial_world.center - spawn).normalized()
+	]
+	for spawn in particle_spawns:
+		var inward: Vector2 = (radial_world.center - spawn).normalized()
 		var tangent := Vector2(-inward.y, inward.x)
 		var particle_index := particles.get_particle_count()
 		particles.emit_impact(spawn, tangent * 1200.0, Color.WHITE, false)
