@@ -47,9 +47,9 @@ func _ready() -> void:
 		_audio_pool.append(player)
 
 
-func bind_material_world(material_world: Node) -> void:
+func bind_material_world(material_world: Node, gravity_scale: float = 1.0) -> void:
 	if is_instance_valid(_particles):
-		_particles.bind_material_world(material_world)
+		_particles.bind_material_world(material_world, gravity_scale)
 
 
 func _process(delta: float) -> void:

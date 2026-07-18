@@ -11,7 +11,12 @@ const TARGET_SCRIPT := preload("res://scripts/combat/combat_target.gd")
 
 
 func _ready() -> void:
-	feedback.bind_material_world(material_world)
+	var particle_gravity_scale := (
+		player.shot_profile.projectile_gravity_scale
+		if is_instance_valid(player.shot_profile)
+		else 1.0
+	)
+	feedback.bind_material_world(material_world, particle_gravity_scale)
 	player.juvenile_requested.connect(_on_juvenile_requested)
 	player.trigger_started.connect(metrics.record_trigger)
 	player.shot_fired.connect(metrics.record_shot)
@@ -43,8 +48,33 @@ func _draw() -> void:
 		var y := float((index * 53 + 7) % 360)
 		var alpha := 0.16 + float(index % 4) * 0.07
 		draw_circle(Vector2(x, y), 0.55 + float(index % 3) * 0.25, Color(0.65, 0.83, 0.9, alpha))
-	# The line is presentation-only; the physical shootable wall is a target.
-	draw_arc(Vector2(320, 180), 174.0, -2.32, -0.82, 72, Color(0.22, 0.42, 0.46, 0.35), 0.8)
+	# Presentation follows the same 10k circle used for collision and gravity;
+	# only its current 640 px surface patch is drawn.
+	var surface_points := PackedVector2Array()
+	var center: Vector2 = material_world.primary_gravity_center
+	var radius: float = material_world.primary_surface_radius
+	for index in range(65):
+		var x := float(index) / 64.0 * 640.0
+		var horizontal := x - center.x
+		var radial_height := sqrt(maxf(radius * radius - horizontal * horizontal, 0.0))
+		surface_points.append(Vector2(x, center.y - radial_height))
+	if surface_points.size() >= 2:
+		draw_polyline(surface_points, Color(0.22, 0.42, 0.46, 0.35), 0.8)
+	# Gate-1 containment markers. These are laboratory limits, not world edges.
+	for boundary_x in [player.arena_min_x, player.arena_max_x]:
+		draw_line(
+			Vector2(boundary_x, -180.0),
+			Vector2(boundary_x, 540.0),
+			Color(0.38, 0.72, 0.75, 0.18),
+			0.8
+		)
+		for marker_y in range(-120, 541, 24):
+			draw_line(
+				Vector2(boundary_x - 3.0, float(marker_y)),
+				Vector2(boundary_x + 3.0, float(marker_y)),
+				Color(0.48, 0.85, 0.82, 0.28),
+				0.8
+			)
 
 
 func _reset_lab() -> void:

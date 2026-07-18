@@ -162,7 +162,11 @@ godot --headless --path game --script res://tests/combat_lab_smoke.gd
 - `R`：重置实验场、靶子和枪感指标；
 - `Esc`：返回原早期物理 Demo。
 
-实验场包含可射击墙面、静止靶、移动靶和七发击杀的普通敌人。高速幼年星种仍受局部重力影响，弹道微粒与命中碎屑也会沿当前坠性下落；屏幕左上角显示实时射速、首发延迟、命中率与击杀数。本阶段只验证瞄准—开火—命中主干，不接入物质构筑。
+实验场包含可射击墙面、静止靶、移动靶和七发击杀的普通敌人。场地是井星半径约 `10000 world px` 的局部表面切片，并不生成完整星球；玩家脚下碰撞面与画面下方约一万像素处的主坠核使用同一圆形几何，因此当前视野内重力近似平行。高速幼年星种仍受局部重力影响，弹道微粒与命中碎屑也会沿当前坠性下落；屏幕左上角显示实时射速、首发延迟、命中率与击杀数。本阶段只验证瞄准—开火—命中主干，不接入物质构筑。两条淡色竖线是 Gate 1 有限实验场边界，玩家中心限制在 `x=162..478`，为重力镜头的轻微旋转保留余量，保证 2× 镜头不会离开当前完整切片；它们不是井星的世界边缘，正式场景将使用区块流式加载扩展地表。
+
+Gate 1 弹道坠性由 [`game/resources/combat/basic_rifle.tres`](game/resources/combat/basic_rifle.tres) 中的 `projectile_gravity_scale` 调整；Combat Lab 的 `MaterialWorld.primary_gravity_acceleration` 表示地表重力 `g_surface`，当前为 `135 world px/s²`，`primary_surface_radius` 表示参考半径 `R`。主星球外部遵循平方反比 `g(r)=g_surface×(R/r)²`；内部使用连续的均匀球模型 `g(r)=g_surface×(r/R)`，因此核心为零重力，不产生奇点。忽略一屏范围内极小的重力变化，横跨可见世界宽度 `W` 的估算下坠量为 `drop = 0.5 × g_local × projectile_gravity_scale × (W / projectile_speed)²`。当前玩家接近地表，`g_local≈135`、`W=320`、速度 `1200`、倍率 `3.0`，约下坠 `14.4 world px`；弹道粒子使用相同倍率。
+
+`MaterialWorld.add_gravity_source()` 创建的是有明确作用半径、半径内线性衰减的临时规则场，用于星种或人造装置；它不代表自然天体引力，也不采用平方反比。自然主重力与这些局部规则场会以向量相加。
 
 原物理 Demo 操作：
 

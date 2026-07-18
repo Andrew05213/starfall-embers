@@ -13,10 +13,12 @@ const MIN_LIFETIME := 0.08
 var _material_world: Node
 var _particles: Array[Dictionary] = []
 var _sequence := 0
+var _gravity_scale := 1.0
 
 
-func bind_material_world(material_world: Node) -> void:
+func bind_material_world(material_world: Node, gravity_scale: float = 1.0) -> void:
 	_material_world = material_world
+	_gravity_scale = maxf(gravity_scale, 0.0)
 
 
 func emit_trail(from: Vector2, to: Vector2, projectile_velocity: Vector2, color: Color) -> void:
@@ -75,7 +77,7 @@ func simulate_step(delta: float) -> void:
 			continue
 		var position := particle["position"] as Vector2
 		var velocity := particle["velocity"] as Vector2
-		var gravity := _get_gravity_at(position)
+		var gravity := _get_gravity_at(position) * _gravity_scale
 		particle["position"] = position + velocity * step + gravity * (0.5 * step * step)
 		particle["velocity"] = velocity + gravity * step
 		particle["age"] = age

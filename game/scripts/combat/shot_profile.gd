@@ -14,7 +14,7 @@ extends Resource
 @export_range(0.0, 10.0, 0.05) var real_recoil := 0.65
 @export_range(0.0, 10.0, 0.05) var presentation_recoil := 2.4
 @export_range(0.0, 1.0, 0.001) var inherited_velocity_ratio := 0.12
-@export_range(0.0, 2.0, 0.05) var projectile_gravity_scale := 1.0
+@export_range(0.0, 6.0, 0.05) var projectile_gravity_scale := 1.0
 @export var color := Color("76f4d6")
 @export var core_color := Color("effff9")
 

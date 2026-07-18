@@ -14,6 +14,9 @@ signal trigger_started(timestamp: float)
 signal shot_fired(timestamp: float, aim_direction: Vector2)
 
 @export var shot_profile: CombatShotProfile
+@export var horizontal_arena_enabled := false
+@export var arena_min_x := 0.0
+@export var arena_max_x := 640.0
 
 var _scheduler := CombatFireScheduler.new()
 var _weapon_kick := 0.0
@@ -33,6 +36,7 @@ func _physics_process(delta: float) -> void:
 	_combat_clock += maxf(delta, 0.0)
 	_weapon_kick = move_toward(_weapon_kick, 0.0, 32.0 * delta)
 	super._physics_process(delta)
+	_enforce_horizontal_arena()
 
 
 func reset_combat_player(world_position: Vector2) -> void:
@@ -63,6 +67,18 @@ func get_aim_direction() -> Vector2:
 
 func get_fire_interval() -> float:
 	return shot_profile.fire_interval if is_instance_valid(shot_profile) else 0.0
+
+
+func _enforce_horizontal_arena() -> void:
+	if not horizontal_arena_enabled or arena_max_x < arena_min_x:
+		return
+	var clamped_x := clampf(global_position.x, arena_min_x, arena_max_x)
+	if not is_equal_approx(clamped_x, global_position.x):
+		global_position.x = clamped_x
+	if global_position.x <= arena_min_x and velocity.x < 0.0:
+		velocity.x = 0.0
+	elif global_position.x >= arena_max_x and velocity.x > 0.0:
+		velocity.x = 0.0
 
 
 func _update_aim() -> void:

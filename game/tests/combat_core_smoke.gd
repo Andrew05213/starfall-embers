@@ -211,7 +211,6 @@ func _test_projectile_ballistics() -> bool:
 	var world := ConstantGravity.new()
 	root.add_child(world)
 	var profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
-	profile.projectile_gravity_scale = 1.0
 	var invalid_profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
 	invalid_profile.projectile_gravity_scale = -1.0
 	if invalid_profile.is_valid():
@@ -226,22 +225,27 @@ func _test_projectile_ballistics() -> bool:
 	if absf(displacement.x - 120.0) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile lost high horizontal speed: %s" % displacement)
-	if absf(displacement.y - 0.675) > EPSILON:
+	var expected_short_drop := 0.675 * profile.projectile_gravity_scale
+	if absf(displacement.y - expected_short_drop) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile did not integrate local gravity: %s" % displacement)
-	if absf(projectile.velocity.y - 13.5) > EPSILON:
+	if absf(projectile.velocity.y - 13.5 * profile.projectile_gravity_scale) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile velocity did not inherit gravity: %s" % projectile.velocity)
 
 	# Lock the actual Gate-1 feel scale: one 320-world-unit view takes 0.2667 s
-	# to cross at 1200 u/s and should drop only 4.8 world px under full gravity.
+	# to cross at 1200 u/s. The resource multiplier makes its drop readable.
 	projectile.global_position = Vector2(1000.0, 1000.0)
 	projectile.velocity = Vector2(profile.projectile_speed, 0.0)
 	projectile.simulate_step(320.0 / profile.projectile_speed)
 	var view_drop: float = projectile.global_position.y - 1000.0
-	if absf(view_drop - 4.8) > EPSILON:
+	var expected_view_drop := 4.8 * profile.projectile_gravity_scale
+	if absf(view_drop - expected_view_drop) > EPSILON:
 		_cleanup_nodes([projectile, world])
-		return _fail_bool("one-view ballistic drop left the visible-but-small band: %.4f" % view_drop)
+		return _fail_bool("one-view ballistic drop differs from configured gravity: %.4f" % view_drop)
+	if view_drop < 12.0 or view_drop > 20.0:
+		_cleanup_nodes([projectile, world])
+		return _fail_bool("one-view ballistic drop left the Gate-1 target band: %.4f" % view_drop)
 	_cleanup_nodes([projectile, world])
 	await process_frame
 	return true
@@ -323,7 +327,7 @@ func _test_ballistic_particle_pool() -> bool:
 	root.add_child(world)
 	var particles: CombatBallisticParticleField = PARTICLE_FIELD_SCRIPT.new()
 	root.add_child(particles)
-	particles.bind_material_world(world)
+	particles.bind_material_world(world, PROFILE_RESOURCE.projectile_gravity_scale)
 	particles.set_process(false)
 	particles.emit_impact(Vector2.ZERO, Vector2.RIGHT * 1200.0, Color.WHITE, false)
 	if particles.get_particle_count() != 8:
@@ -334,7 +338,8 @@ func _test_ballistic_particle_pool() -> bool:
 	var after := particles.get_particle_snapshot(0)
 	var before_velocity := before["velocity"] as Vector2
 	var after_velocity := after["velocity"] as Vector2
-	if absf((after_velocity.y - before_velocity.y) - 13.5) > EPSILON:
+	var expected_particle_gravity := 13.5 * PROFILE_RESOURCE.projectile_gravity_scale
+	if absf((after_velocity.y - before_velocity.y) - expected_particle_gravity) > EPSILON:
 		_cleanup_nodes([particles, world])
 		return _fail_bool("impact particle did not inherit local gravity")
 	if float((after["position"] as Vector2).x) <= float((before["position"] as Vector2).x):

@@ -3,6 +3,7 @@ extends SceneTree
 const LAB_SCENE := preload("res://scenes/combat_lab.tscn")
 const PROFILE := preload("res://resources/combat/basic_rifle.tres")
 const TARGET_SCRIPT := preload("res://scripts/combat/combat_target.gd")
+const PROJECTILE_SCRIPT := preload("res://scripts/combat/juvenile_starseed.gd")
 
 
 func _initialize() -> void:
@@ -32,6 +33,72 @@ func _run() -> void:
 	if PROFILE.projectile_lifetime < 0.4 or PROFILE.projectile_lifetime > 0.8:
 		_fail("juvenile lifetime is outside the Gate-1 band")
 		return
+	var material_world: MaterialWorld = lab.get_node("MaterialWorld") as MaterialWorld
+	var player: CombatLabPlayer = lab.get_node("Player") as CombatLabPlayer
+	if material_world.terrain_generation_mode != "surface_patch":
+		_fail("combat lab still generates the small whole asteroid")
+		return
+	if absf(material_world.primary_surface_radius - 10000.0) > 0.1:
+		_fail("combat surface radius is not 10000 world px")
+		return
+	var core_distance := player.global_position.distance_to(material_world.primary_gravity_center)
+	if core_distance < 9800.0 or core_distance > 10200.0:
+		_fail("player is not approximately 10000 px from the primary core: %.2f" % core_distance)
+		return
+	var left_sample := player.global_position + Vector2.LEFT * visible_world_width * 0.5
+	var right_sample := player.global_position + Vector2.RIGHT * visible_world_width * 0.5
+	var left_gravity: Vector2 = material_world.get_gravity_at(left_sample)
+	var right_gravity: Vector2 = material_world.get_gravity_at(right_sample)
+	if left_gravity.length() < 132.0 or right_gravity.length() < 132.0:
+		_fail("combat patch gravity is no longer close to its configured surface value")
+		return
+	if left_gravity.length() > 135.01 or right_gravity.length() > 135.01:
+		_fail("combat patch gravity exceeds its configured surface value outside the planet")
+		return
+	var direction_change := acos(clampf(left_gravity.normalized().dot(right_gravity.normalized()), -1.0, 1.0))
+	if direction_change > 0.04:
+		_fail("gravity varies too much across the local surface patch: %.4f rad" % direction_change)
+		return
+	var radius: float = material_world.primary_surface_radius
+	var surface_g := material_world.get_primary_gravity_magnitude_at_distance(radius)
+	var double_radius_g := material_world.get_primary_gravity_magnitude_at_distance(radius * 2.0)
+	var quadruple_radius_g := material_world.get_primary_gravity_magnitude_at_distance(radius * 4.0)
+	var half_radius_g := material_world.get_primary_gravity_magnitude_at_distance(radius * 0.5)
+	var core_g := material_world.get_primary_gravity_magnitude_at_distance(0.0)
+	if absf(surface_g - 135.0) > 0.001:
+		_fail("primary gravity does not equal surface g at r=R: %.4f" % surface_g)
+		return
+	if absf(double_radius_g / surface_g - 0.25) > 0.0001:
+		_fail("primary gravity does not follow inverse-square falloff at r=2R")
+		return
+	if absf(quadruple_radius_g / surface_g - 0.0625) > 0.0001:
+		_fail("primary gravity does not follow inverse-square falloff at r=4R")
+		return
+	if absf(half_radius_g / surface_g - 0.5) > 0.0001:
+		_fail("interior primary gravity is not continuous uniform-sphere gravity at r=R/2")
+		return
+	if absf(core_g) > 0.0001:
+		_fail("primary gravity is not zero at the core")
+		return
+	var crossing_time := visible_world_width / PROFILE.projectile_speed
+	var estimated_drop := (
+		0.5
+		* material_world.get_primary_gravity_at(player.global_position).length()
+		* PROFILE.projectile_gravity_scale
+		* crossing_time
+		* crossing_time
+	)
+	if estimated_drop < 12.0 or estimated_drop > 20.0:
+		_fail("configured one-view projectile drop is outside 12-20 px: %.2f" % estimated_drop)
+		return
+	if not await _test_surface_patch_and_live_projectile(
+		lab,
+		material_world,
+		visible_world_width
+	):
+		return
+	if not await _test_arena_containment(player, camera, visible_world_width):
+		return
 	var feedback: CombatFeedback = lab.get_node("CombatFeedback") as CombatFeedback
 	for layer in ["cast", "flight", "hit", "death"]:
 		if not feedback.has_audio_layer(layer):
@@ -44,7 +111,6 @@ func _run() -> void:
 		_fail("hit audio is not the crisp impact revision")
 		return
 
-	var player: CombatLabPlayer = lab.get_node("Player") as CombatLabPlayer
 	# Live Camera2D contract: feed a screen point generated from a known world
 	# direction, then require the controller to invert the rotated canvas.
 	var expected_aim := Vector2.from_angle(0.41)
@@ -87,6 +153,120 @@ func _run() -> void:
 		return
 	print("combat lab smoke: PASS shots=", shots, " screens_per_second=", snappedf(screens_per_second, 0.01))
 	quit(0)
+
+
+func _test_surface_patch_and_live_projectile(
+	lab: Node,
+	material_world: MaterialWorld,
+	visible_world_width: float
+) -> bool:
+	var center: Vector2 = material_world.primary_gravity_center
+	var radius: float = material_world.primary_surface_radius
+	# Cell centers are 4 px apart. Sampling six pixels to either side of the
+	# analytic surface leaves enough tolerance for rasterization while proving
+	# collision and the decorative 10k circle describe the same patch.
+	var surface_sample_xs: Array[float] = [0.0, 160.0, 320.0, 480.0, 639.0]
+	for x in surface_sample_xs:
+		var horizontal: float = x - center.x
+		var surface_y: float = (
+			center.y - sqrt(maxf(radius * radius - horizontal * horizontal, 0.0))
+		)
+		var above := Vector2(x, surface_y - 6.0)
+		var below := Vector2(x, surface_y + 6.0)
+		if material_world.is_solid_at(above):
+			return _fail_bool("10k surface patch is solid above its analytic surface at x=%.1f" % x)
+		if not material_world.is_solid_at(below):
+			return _fail_bool("10k surface patch is empty below its analytic surface at x=%.1f" % x)
+
+	# Exercise the production projectile against the real far-core MaterialWorld.
+	# This high path clears targets and terrain, isolating one-view ballistics.
+	var projectile: JuvenileStarseed = PROJECTILE_SCRIPT.new()
+	lab.add_child(projectile)
+	var origin := Vector2(160.0, -60.0)
+	projectile.setup(PROFILE, origin, Vector2.RIGHT, Vector2.ZERO, material_world)
+	projectile.set_physics_process(false)
+	var impacted := [false]
+	projectile.impacted.connect(
+		func(_target: Node, _point: Vector2, _velocity: Vector2) -> void:
+			impacted[0] = true
+	)
+	# Sixteen production-sized physics steps cross 320 px at 1200 px/s and
+	# require gravity to be resampled along the complete trajectory.
+	for _step in range(16):
+		projectile.simulate_step(1.0 / 60.0)
+	var displacement: Vector2 = projectile.global_position - origin
+	if bool(impacted[0]) or projectile.is_expired():
+		projectile.queue_free()
+		await process_frame
+		return _fail_bool("live one-view projectile unexpectedly hit or expired")
+	if displacement.x < visible_world_width - 5.0 or displacement.x > visible_world_width + 5.0:
+		projectile.queue_free()
+		await process_frame
+		return _fail_bool("live projectile did not cross one visible width: %s" % displacement)
+	if displacement.y < 12.0 or displacement.y > 20.0:
+		projectile.queue_free()
+		await process_frame
+		return _fail_bool("live far-core projectile drop is outside 12-20 px: %.3f" % displacement.y)
+	projectile.queue_free()
+	await process_frame
+	return true
+
+
+func _test_arena_containment(
+	player: CombatLabPlayer,
+	camera: Camera2D,
+	visible_world_width: float
+) -> bool:
+	if (
+		not player.horizontal_arena_enabled
+		or absf(player.arena_min_x - 162.0) > 0.01
+		or absf(player.arena_max_x - 478.0) > 0.01
+	):
+		return _fail_bool("combat player does not use the 162..478 Gate-1 containment")
+
+	var test_y := player.global_position.y
+	player.global_position = Vector2(player.arena_min_x - 24.0, test_y)
+	player.velocity = Vector2(-255.0, 0.0)
+	for _frame in range(2):
+		await physics_frame
+	if player.global_position.x < player.arena_min_x - 0.01 or player.velocity.x < -0.01:
+		return _fail_bool(
+			"left arena edge did not clamp position/outward velocity: pos=%s velocity=%s"
+			% [player.global_position, player.velocity]
+		)
+	var left_clamped_x := player.global_position.x
+	for _frame in range(6):
+		await physics_frame
+	if player.global_position.x < left_clamped_x - 0.01:
+		return _fail_bool("player continued moving outward after the left containment clamp")
+	for _frame in range(60):
+		await physics_frame
+	if camera.global_position.x - visible_world_width * 0.5 < -0.5:
+		return _fail_bool("camera view left the generated patch at the left arena edge")
+
+	player.global_position = Vector2(player.arena_max_x + 24.0, test_y)
+	player.velocity = Vector2(255.0, 0.0)
+	for _frame in range(2):
+		await physics_frame
+	if player.global_position.x > player.arena_max_x + 0.01 or player.velocity.x > 0.01:
+		return _fail_bool(
+			"right arena edge did not clamp position/outward velocity: pos=%s velocity=%s"
+			% [player.global_position, player.velocity]
+		)
+	var right_clamped_x := player.global_position.x
+	for _frame in range(6):
+		await physics_frame
+	if player.global_position.x > right_clamped_x + 0.01:
+		return _fail_bool("player continued moving outward after the right containment clamp")
+	for _frame in range(60):
+		await physics_frame
+	if camera.global_position.x + visible_world_width * 0.5 > 640.5:
+		return _fail_bool("camera view left the generated patch at the right arena edge")
+
+	player.reset_combat_player(Vector2(320.0, 10.0))
+	for _frame in range(8):
+		await physics_frame
+	return true
 
 
 func _test_grunt_hit_contract() -> bool:

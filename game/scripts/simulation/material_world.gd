@@ -31,6 +31,12 @@ const BASE_GRAVITY_ACCELERATION := 135.0
 const MATERIAL_MASK := 0x0f
 const MOVED_MASK := 0x80
 const ASTEROID_CENTER := Vector2(79.5, 44.5)
+const DEFAULT_PRIMARY_GRAVITY_CENTER := Vector2(320.0, 180.0)
+
+@export_enum("asteroid", "surface_patch") var terrain_generation_mode := "asteroid"
+@export var primary_gravity_center := DEFAULT_PRIMARY_GRAVITY_CENTER
+@export_range(0.0, 2000.0, 1.0) var primary_gravity_acceleration := BASE_GRAVITY_ACCELERATION
+@export_range(1.0, 100000.0, 1.0) var primary_surface_radius := 156.0
 
 const MATERIAL_NAMES := [
 	"air", "rock", "sand", "water", "oil", "fire", "smoke", "lava", "steam", "metal"
@@ -101,7 +107,10 @@ func reset_world() -> void:
 	_rng_state = 0x51a7e11
 	_gravity_sources.clear()
 	_next_gravity_source_id = 1
-	_generate_asteroid()
+	if terrain_generation_mode == "surface_patch":
+		_generate_surface_patch()
+	else:
+		_generate_asteroid()
 	_mark_changed()
 	if is_node_ready():
 		_upload_texture()
@@ -111,6 +120,23 @@ func reset_world() -> void:
 func get_gravity_at(world_pos: Vector2) -> Vector2:
 	var local_gravity := _gravity_for_local_position(to_local(world_pos))
 	return global_transform.x * local_gravity.x + global_transform.y * local_gravity.y
+
+
+func get_primary_gravity_at(world_pos: Vector2) -> Vector2:
+	## Primary natural gravity only, excluding temporary local gravity sources.
+	var local_gravity := _primary_gravity_for_local_position(to_local(world_pos))
+	return global_transform.x * local_gravity.x + global_transform.y * local_gravity.y
+
+
+func get_primary_gravity_magnitude_at_distance(distance: float) -> float:
+	## Continuous uniform-sphere model inside the surface and inverse-square
+	## gravity outside. primary_gravity_acceleration is the magnitude at r = R.
+	var radius := maxf(primary_surface_radius, 0.001)
+	var radial_distance := absf(distance)
+	if radial_distance <= radius:
+		return primary_gravity_acceleration * radial_distance / radius
+	var radius_ratio := radius / radial_distance
+	return primary_gravity_acceleration * radius_ratio * radius_ratio
 
 
 func is_solid_at(world_pos: Vector2) -> bool:
@@ -367,13 +393,7 @@ func _movement_directions(x: int, y: int, opposite_gravity: bool) -> Array[Vecto
 
 
 func _gravity_for_local_position(local_position: Vector2) -> Vector2:
-	var center_pixels := (ASTEROID_CENTER + Vector2(0.5, 0.5)) * CELL_SIZE
-	var delta := center_pixels - local_position
-	var gravity := (
-		delta.normalized() * BASE_GRAVITY_ACCELERATION
-		if delta.length_squared() > 0.01
-		else Vector2.ZERO
-	)
+	var gravity := _primary_gravity_for_local_position(local_position)
 	for source_id in _gravity_sources:
 		var source: Dictionary = _gravity_sources[source_id]
 		var source_delta: Vector2 = source["position"] - local_position
@@ -383,6 +403,14 @@ func _gravity_for_local_position(local_position: Vector2) -> Vector2:
 			var falloff := 1.0 - distance / radius
 			gravity += source_delta / distance * float(source["strength"]) * falloff
 	return gravity
+
+
+func _primary_gravity_for_local_position(local_position: Vector2) -> Vector2:
+	var center_pixels := to_local(primary_gravity_center)
+	var delta := center_pixels - local_position
+	if delta.length_squared() <= 0.000001:
+		return Vector2.ZERO
+	return delta.normalized() * get_primary_gravity_magnitude_at_distance(delta.length())
 
 
 func _swap_or_move(from_x: int, from_y: int, to_x: int, to_y: int, material: int) -> void:
@@ -475,6 +503,19 @@ func _generate_asteroid() -> void:
 	_fill_circle_cells(Vector2i(73, 47), 3, CellMaterial.METAL)
 	_fill_circle_cells(Vector2i(87, 47), 3, CellMaterial.METAL)
 	_fill_circle_cells(Vector2i(101, 48), 2, CellMaterial.FIRE)
+
+
+func _generate_surface_patch() -> void:
+	## Generate only the cells intersecting the local view of a much larger body.
+	## The combat lab uses a 10k radius, so its 640 px patch is nearly flat while
+	## gravity and collision still derive from the same circle.
+	var center_local := to_local(primary_gravity_center)
+	var radius_squared := primary_surface_radius * primary_surface_radius
+	for y in GRID_HEIGHT:
+		for x in GRID_WIDTH:
+			var cell_center := Vector2((x + 0.5) * CELL_SIZE, (y + 0.5) * CELL_SIZE)
+			if cell_center.distance_squared_to(center_local) <= radius_squared:
+				_set_material(x, y, CellMaterial.ROCK)
 
 
 func _fill_circle_cells(center: Vector2i, radius: int, material: int) -> void:
