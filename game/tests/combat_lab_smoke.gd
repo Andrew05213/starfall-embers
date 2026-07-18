@@ -35,6 +35,12 @@ func _run() -> void:
 		return
 	var material_world: MaterialWorld = lab.get_node("MaterialWorld") as MaterialWorld
 	var player: CombatLabPlayer = lab.get_node("Player") as CombatLabPlayer
+	if absf(player.jump_speed - 178.0) > 0.01 or absf(player.terminal_speed - 900.0) > 0.01:
+		_fail("combat player does not use the Jingxing jump/terminal-speed balance")
+		return
+	if absf(float(player.get_state().get("max_energy", 0.0)) - 100.0) > 0.01:
+		_fail("combat player max energy is not the 100-point balance baseline")
+		return
 	if material_world.terrain_generation_mode != "surface_patch":
 		_fail("combat lab still generates the small whole asteroid")
 		return
@@ -49,10 +55,10 @@ func _run() -> void:
 	var right_sample := player.global_position + Vector2.RIGHT * visible_world_width * 0.5
 	var left_gravity: Vector2 = material_world.get_gravity_at(left_sample)
 	var right_gravity: Vector2 = material_world.get_gravity_at(right_sample)
-	if left_gravity.length() < 132.0 or right_gravity.length() < 132.0:
+	if left_gravity.length() < 315.0 or right_gravity.length() < 315.0:
 		_fail("combat patch gravity is no longer close to its configured surface value")
 		return
-	if left_gravity.length() > 135.01 or right_gravity.length() > 135.01:
+	if left_gravity.length() > 320.01 or right_gravity.length() > 320.01:
 		_fail("combat patch gravity exceeds its configured surface value outside the planet")
 		return
 	var direction_change := acos(clampf(left_gravity.normalized().dot(right_gravity.normalized()), -1.0, 1.0))
@@ -65,7 +71,7 @@ func _run() -> void:
 	var quadruple_radius_g := material_world.get_primary_gravity_magnitude_at_distance(radius * 4.0)
 	var half_radius_g := material_world.get_primary_gravity_magnitude_at_distance(radius * 0.5)
 	var core_g := material_world.get_primary_gravity_magnitude_at_distance(0.0)
-	if absf(surface_g - 135.0) > 0.001:
+	if absf(surface_g - 320.0) > 0.001:
 		_fail("primary gravity does not equal surface g at r=R: %.4f" % surface_g)
 		return
 	if absf(double_radius_g / surface_g - 0.25) > 0.0001:
@@ -79,6 +85,18 @@ func _run() -> void:
 		return
 	if absf(core_g) > 0.0001:
 		_fail("primary gravity is not zero at the core")
+		return
+	var escape_speed := sqrt(2.0 * surface_g * radius)
+	var full_boost_delta := player.boost_acceleration * 100.0 / 35.0
+	var conservative_combo_speed := player.jump_speed + full_boost_delta + 125.0
+	if conservative_combo_speed >= escape_speed * 0.4:
+		_fail(
+			"jump+boost+rupture conservative speed lost the 40%% escape margin: %.2f / %.2f"
+			% [conservative_combo_speed, escape_speed]
+		)
+		return
+	if player.terminal_speed >= escape_speed * 0.4:
+		_fail("player safety cap is no longer below 40% of Jingxing escape speed")
 		return
 	var crossing_time := visible_world_width / PROFILE.projectile_speed
 	var estimated_drop := (

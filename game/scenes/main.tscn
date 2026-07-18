@@ -17,6 +17,8 @@ z_index = 10
 position = Vector2(320, 10)
 script = ExtResource("3_player")
 material_world_path = NodePath("../MaterialWorld")
+jump_speed = 116.0
+terminal_speed = 255.0
 
 [node name="GravityCamera" type="Camera2D" parent="."]
 position = Vector2(320, 10)

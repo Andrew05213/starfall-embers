@@ -329,6 +329,32 @@ func _test_ballistic_particle_pool() -> bool:
 	root.add_child(particles)
 	particles.bind_material_world(world, PROFILE_RESOURCE.projectile_gravity_scale)
 	particles.set_process(false)
+	particles.emit_trail(
+		Vector2.ZERO,
+		Vector2.RIGHT * 20.0,
+		Vector2.RIGHT * PROFILE_RESOURCE.projectile_speed,
+		Color.WHITE
+	)
+	if particles.get_particle_count() != CombatBallisticParticleField.TRAIL_PARTICLES_PER_STEP:
+		_cleanup_nodes([particles, world])
+		return _fail_bool("trail did not emit the expected per-step particle count")
+	for index in range(particles.get_particle_count()):
+		var trail_particle := particles.get_particle_snapshot(index)
+		var trail_velocity := trail_particle["velocity"] as Vector2
+		if trail_velocity.length() > PROFILE_RESOURCE.projectile_speed * 0.20 + EPSILON:
+			_cleanup_nodes([particles, world])
+			return _fail_bool("trail particle exceeded the one-fifth projectile-speed cap")
+		if float(trail_particle["lifetime"]) < 0.28:
+			_cleanup_nodes([particles, world])
+			return _fail_bool("trail particle lifetime did not preserve the longer visual tail")
+	particles.simulate_step(0.20)
+	if particles.get_particle_count() != CombatBallisticParticleField.TRAIL_PARTICLES_PER_STEP:
+		_cleanup_nodes([particles, world])
+		return _fail_bool("long-lived trail particles were reclaimed after only 0.20 seconds")
+	particles.simulate_step(0.15)
+	if particles.get_particle_count() != 0:
+		_cleanup_nodes([particles, world])
+		return _fail_bool("trail particles survived beyond their configured upper lifetime")
 	particles.emit_impact(Vector2.ZERO, Vector2.RIGHT * 1200.0, Color.WHITE, false)
 	if particles.get_particle_count() != 8:
 		_cleanup_nodes([particles, world])

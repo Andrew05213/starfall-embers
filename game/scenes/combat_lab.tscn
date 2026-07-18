@@ -15,7 +15,7 @@ script = ExtResource("1_lab")
 script = ExtResource("2_world")
 terrain_generation_mode = "surface_patch"
 primary_gravity_center = Vector2(320, 10020)
-primary_gravity_acceleration = 135.0
+primary_gravity_acceleration = 320.0
 primary_surface_radius = 10000.0
 
 [node name="Player" type="Node2D" parent="."]
@@ -24,6 +24,8 @@ position = Vector2(320, 10)
 script = ExtResource("3_player")
 material_world_path = NodePath("../MaterialWorld")
 shot_profile = ExtResource("4_profile")
+jump_speed = 178.0
+terminal_speed = 900.0
 horizontal_arena_enabled = true
 arena_min_x = 162.0
 arena_max_x = 478.0

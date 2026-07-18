@@ -6,9 +6,14 @@ extends Node2D
 ## gameplay objects, so sparks curve toward the asteroid instead of behaving
 ## like screen-space decoration.
 
-const MAX_PARTICLES := 192
+const MAX_PARTICLES := 384
 const TRAIL_PARTICLES_PER_STEP := 2
 const MIN_LIFETIME := 0.08
+const TRAIL_LONGITUDINAL_RATIO := 0.18
+const TRAIL_LATERAL_RATIO := 0.035
+const TRAIL_SPEED_CAP_RATIO := 0.20
+const TRAIL_LIFETIME_MIN := 0.28
+const TRAIL_LIFETIME_MAX := 0.34
 
 var _material_world: Node
 var _particles: Array[Dictionary] = []
@@ -25,16 +30,29 @@ func emit_trail(from: Vector2, to: Vector2, projectile_velocity: Vector2, color:
 	var segment := to - from
 	if segment.length_squared() < 0.01:
 		return
-	var backward := -projectile_velocity.normalized()
-	var side := Vector2(-backward.y, backward.x)
+	var projectile_speed := projectile_velocity.length()
+	if projectile_speed <= 0.001:
+		return
+	var forward := projectile_velocity / projectile_speed
+	var side := Vector2(-forward.y, forward.x)
 	for index in range(TRAIL_PARTICLES_PER_STEP):
 		var ratio := (float(index) + 0.5) / float(TRAIL_PARTICLES_PER_STEP)
 		var alternating := -1.0 if (_sequence + index) % 2 == 0 else 1.0
+		var particle_velocity := (
+			projectile_velocity * TRAIL_LONGITUDINAL_RATIO
+			+ side * alternating * projectile_speed * TRAIL_LATERAL_RATIO
+		)
+		particle_velocity = particle_velocity.limit_length(
+			projectile_speed * TRAIL_SPEED_CAP_RATIO
+		)
+		var lifetime_ratio := (
+			float(index) / float(maxi(TRAIL_PARTICLES_PER_STEP - 1, 1))
+		)
 		_spawn(
 			from.lerp(to, ratio),
-			projectile_velocity * 0.075 + backward * (18.0 + index * 7.0) + side * alternating * 5.0,
+			particle_velocity,
 			color,
-			0.11 + index * 0.025,
+			lerpf(TRAIL_LIFETIME_MIN, TRAIL_LIFETIME_MAX, lifetime_ratio),
 			0.85
 		)
 	_sequence += TRAIL_PARTICLES_PER_STEP
