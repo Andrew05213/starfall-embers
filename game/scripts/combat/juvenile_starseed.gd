@@ -7,6 +7,7 @@ extends Node2D
 
 signal impacted(target: Node, point: Vector2, impact_velocity: Vector2)
 signal expired(reason: String)
+signal traveled(from: Vector2, to: Vector2, travel_velocity: Vector2)
 
 const TERRAIN_SAMPLE_STEP := 0.8
 const HIT_EPSILON := 0.000001
@@ -58,15 +59,25 @@ func simulate_step(delta: float) -> void:
 	var step_time := minf(maxf(delta, 0.0), remaining_lifetime)
 	if step_time > 0.0:
 		var from := global_position
-		var to := from + velocity * step_time
+		var gravity := _get_gravity_at(from) * _profile.projectile_gravity_scale
+		# Integrate the ballistic arc analytically over one fixed physics step.
+		# Collision uses its chord; at 60 Hz and the rifle's speed the curvature
+		# inside a step is sub-pixel while still preserving continuous collision.
+		var to := from + velocity * step_time + gravity * (0.5 * step_time * step_time)
+		var end_velocity := velocity + gravity * step_time
 		_record_trail(from)
 		var hit := _find_earliest_hit(from, to)
 		if not hit.is_empty():
+			var hit_fraction := float(hit["fraction"])
 			global_position = hit["point"] as Vector2
-			_age += step_time * float(hit["fraction"])
+			velocity += gravity * step_time * hit_fraction
+			traveled.emit(from, global_position, velocity)
+			_age += step_time * hit_fraction
 			_apply_hit(hit)
 			return
 		global_position = to
+		velocity = end_velocity
+		traveled.emit(from, to, velocity)
 		_record_trail(to)
 	_age += step_time
 	if _age + HIT_EPSILON >= _profile.projectile_lifetime:
@@ -87,6 +98,15 @@ func get_lifetime_ratio() -> float:
 	if not is_instance_valid(_profile) or _profile.projectile_lifetime <= 0.0:
 		return 1.0
 	return clampf(_age / _profile.projectile_lifetime, 0.0, 1.0)
+
+
+func _get_gravity_at(world_point: Vector2) -> Vector2:
+	if (
+		not is_instance_valid(_material_world)
+		or not _material_world.has_method("get_gravity_at")
+	):
+		return Vector2.ZERO
+	return _material_world.call("get_gravity_at", world_point) as Vector2
 
 
 func _find_earliest_hit(from: Vector2, to: Vector2) -> Dictionary:

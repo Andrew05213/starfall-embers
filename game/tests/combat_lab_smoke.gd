@@ -37,6 +37,12 @@ func _run() -> void:
 		if not feedback.has_audio_layer(layer):
 			_fail("combat feedback did not generate the %s audio layer" % layer)
 			return
+	if str(feedback.get_audio_characteristics("cast").get("family", "")) != "crisp_hiss":
+		_fail("cast audio is not the short crisp hiss revision")
+		return
+	if str(feedback.get_audio_characteristics("hit").get("family", "")) != "crisp_impact":
+		_fail("hit audio is not the crisp impact revision")
+		return
 
 	var player: CombatLabPlayer = lab.get_node("Player") as CombatLabPlayer
 	# Live Camera2D contract: feed a screen point generated from a known world

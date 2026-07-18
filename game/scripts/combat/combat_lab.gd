@@ -11,6 +11,7 @@ const TARGET_SCRIPT := preload("res://scripts/combat/combat_target.gd")
 
 
 func _ready() -> void:
+	feedback.bind_material_world(material_world)
 	player.juvenile_requested.connect(_on_juvenile_requested)
 	player.trigger_started.connect(metrics.record_trigger)
 	player.shot_fired.connect(metrics.record_shot)
@@ -84,6 +85,10 @@ func _on_juvenile_requested(
 	add_child(projectile)
 	projectile.setup(profile, origin, direction, inherited_velocity, material_world)
 	projectile.impacted.connect(_on_projectile_impacted)
+	projectile.traveled.connect(
+		func(from: Vector2, to: Vector2, travel_velocity: Vector2) -> void:
+			feedback.projectile_trail(from, to, travel_velocity, profile.color)
+	)
 	feedback.release(origin, direction, profile.color)
 
 
@@ -91,7 +96,7 @@ func _on_projectile_impacted(target: Node, point: Vector2, impact_velocity: Vect
 	# Target hits produce their richer material/body feedback through the target
 	# signal. Terrain still needs a distinct impact flash.
 	if not is_instance_valid(target):
-		feedback.impact(point, impact_velocity.normalized(), Color("90a7b7"))
+		feedback.impact(point, impact_velocity, Color("90a7b7"))
 
 
 func _on_target_hit(
@@ -101,9 +106,9 @@ func _on_target_hit(
 	strong: bool
 ) -> void:
 	metrics.record_hit()
-	feedback.impact(point, impact_velocity.normalized(), Color("76f4d6"), strong)
+	feedback.impact(point, impact_velocity, Color("76f4d6"), strong)
 
 
 func _on_target_defeated(_target: Node, point: Vector2, impact_velocity: Vector2) -> void:
 	metrics.record_death()
-	feedback.death(point, impact_velocity.normalized(), Color("ff806c"))
+	feedback.death(point, impact_velocity, Color("ff806c"))

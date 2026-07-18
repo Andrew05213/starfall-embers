@@ -30,6 +30,8 @@ combat_scene = require_text(GAME / "scenes" / "combat_lab.tscn")
 
 if 'run/main_scene="res://scenes/combat_lab.tscn"' not in project:
     fail("project.godot does not select the Gate-1 combat lab")
+if "common/physics_interpolation=true" not in project:
+    fail("project.godot does not enable render-time physics interpolation")
 
 resource_paths = re.findall(
     r'path="res://([^\"]+)"', demo_scene + "\n" + combat_scene
@@ -93,6 +95,12 @@ contracts = {
     GAME / "scripts" / "combat" / "combat_target.gd": (
         "sweep_hit",
         "receive_juvenile_hit",
+    ),
+    GAME / "scripts" / "combat" / "ballistic_particle_field.gd": (
+        "bind_material_world",
+        "emit_trail",
+        "emit_impact",
+        "simulate_step",
     ),
     GAME / "scripts" / "combat" / "combat_lab.gd": ("get_lab_state",),
 }

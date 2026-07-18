@@ -36,6 +36,10 @@ fire_starseed={
 "events": [Object(InputEventMouseButton,"button_index":1), Object(InputEventKey,"physical_keycode":70)]
 }
 
+[physics]
+
+common/physics_interpolation=true
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

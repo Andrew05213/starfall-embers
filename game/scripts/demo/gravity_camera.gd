@@ -13,14 +13,16 @@ var _desired_rotation := 0.0
 
 
 func _ready() -> void:
+	# The target is authoritative in _physics_process. Updating this camera on
+	# the same clock lets Godot interpolate both transforms together at render
+	# time instead of sampling a stepped physics position from _process.
+	process_callback = Camera2D.CAMERA2D_PROCESS_PHYSICS
 	_resolve_target()
 	if is_instance_valid(_target):
-		global_position = _target.global_position
-		_desired_rotation = _calculate_desired_rotation()
-		rotation = _desired_rotation
+		_snap_to_target()
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_target):
 		_resolve_target()
 	if not is_instance_valid(_target):
@@ -38,12 +40,32 @@ func get_desired_rotation() -> float:
 
 
 func _resolve_target() -> void:
+	var previous_target := _target
 	if not target_path.is_empty():
 		_target = get_node_or_null(target_path) as Node2D
 	if not is_instance_valid(_target):
 		var parent := get_parent()
 		if is_instance_valid(parent):
 			_target = parent.get_node_or_null("Player") as Node2D
+	if _target != previous_target and is_instance_valid(_target) and _target.has_signal("teleported"):
+		var callback := Callable(self, "_on_target_teleported")
+		if not _target.is_connected("teleported", callback):
+			_target.connect("teleported", callback)
+
+
+func _on_target_teleported(_world_position: Vector2) -> void:
+	_snap_to_target()
+
+
+func _snap_to_target() -> void:
+	if not is_instance_valid(_target):
+		return
+	global_position = _target.global_position
+	_desired_rotation = _calculate_desired_rotation()
+	rotation = _desired_rotation
+	# Camera position and gravity rotation both jump on spawn/reset. Clearing
+	# interpolation prevents a one-frame sweep through the previous viewpoint.
+	reset_physics_interpolation()
 
 
 func _calculate_desired_rotation() -> float:

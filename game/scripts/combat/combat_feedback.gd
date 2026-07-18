@@ -8,21 +8,35 @@ signal audio_hook_requested(layer: String, position: Vector2, intensity: float)
 
 const AUDIO_POOL_SIZE := 10
 const SAMPLE_RATE := 22050
+const PARTICLE_FIELD_SCRIPT := preload("res://scripts/combat/ballistic_particle_field.gd")
 
 var _effects: Array[Dictionary] = []
 var _audio_streams: Dictionary = {}
 var _audio_pool: Array[AudioStreamPlayer2D] = []
 var _audio_cursor := 0
 var _audio_sequence := 0
+var _audio_characteristics: Dictionary = {}
+var _particles: CombatBallisticParticleField
 
 
 func _ready() -> void:
+	_particles = PARTICLE_FIELD_SCRIPT.new()
+	_particles.name = "BallisticParticles"
+	_particles.z_index = 1
+	add_child(_particles)
 	_audio_streams = {
-		"cast": _make_tone(760.0, 0.055, 0.28, 0.38),
+		"cast": _make_crisp_transient(0.046, 0.34, 3100.0, 1450.0, 0.62, 17),
 		"flight": _make_tone(1180.0, 0.045, 0.16, 0.51),
-		"hit": _make_tone(185.0, 0.07, 0.42, 1.55),
-		"strong_hit": _make_tone(105.0, 0.11, 0.54, 1.9),
+		"hit": _make_crisp_transient(0.052, 0.40, 2400.0, 820.0, 0.36, 29),
+		"strong_hit": _make_crisp_transient(0.078, 0.52, 1900.0, 410.0, 0.30, 43),
 		"death": _make_tone(82.0, 0.19, 0.58, 2.35),
+	}
+	_audio_characteristics = {
+		"cast": {"family": "crisp_hiss", "duration": 0.046},
+		"flight": {"family": "pitched_flight", "duration": 0.045},
+		"hit": {"family": "crisp_impact", "duration": 0.052},
+		"strong_hit": {"family": "crisp_impact", "duration": 0.078},
+		"death": {"family": "low_material_break", "duration": 0.19},
 	}
 	for _index in range(AUDIO_POOL_SIZE):
 		var player := AudioStreamPlayer2D.new()
@@ -31,6 +45,11 @@ func _ready() -> void:
 		player.volume_db = -7.0
 		add_child(player)
 		_audio_pool.append(player)
+
+
+func bind_material_world(material_world: Node) -> void:
+	if is_instance_valid(_particles):
+		_particles.bind_material_world(material_world)
 
 
 func _process(delta: float) -> void:
@@ -68,7 +87,18 @@ func release(origin: Vector2, direction: Vector2, color: Color) -> void:
 	queue_redraw()
 
 
-func impact(point: Vector2, direction: Vector2, color: Color, strong: bool = false) -> void:
+func projectile_trail(
+	from: Vector2,
+	to: Vector2,
+	projectile_velocity: Vector2,
+	color: Color
+) -> void:
+	if is_instance_valid(_particles):
+		_particles.emit_trail(from, to, projectile_velocity, color)
+
+
+func impact(point: Vector2, impact_velocity: Vector2, color: Color, strong: bool = false) -> void:
+	var direction := impact_velocity.normalized()
 	_effects.append({
 		"kind": "strong_hit" if strong else "hit",
 		"position": point,
@@ -79,10 +109,15 @@ func impact(point: Vector2, direction: Vector2, color: Color, strong: bool = fal
 	})
 	audio_hook_requested.emit("strong_hit" if strong else "hit", point, 1.0 if strong else 0.62)
 	_play_audio("strong_hit" if strong else "hit", point, 1.0 if strong else 0.62)
+	if is_instance_valid(_particles):
+		# The directional inheritance is intentionally small so sparks remain
+		# readable while still carrying the actual incoming projectile momentum.
+		_particles.emit_impact(point, impact_velocity, color, strong)
 	queue_redraw()
 
 
-func death(point: Vector2, direction: Vector2, color: Color) -> void:
+func death(point: Vector2, impact_velocity: Vector2, color: Color) -> void:
+	var direction := impact_velocity.normalized()
 	_effects.append({
 		"kind": "death",
 		"position": point,
@@ -93,6 +128,8 @@ func death(point: Vector2, direction: Vector2, color: Color) -> void:
 	})
 	audio_hook_requested.emit("death", point, 1.0)
 	_play_audio("death", point, 1.0)
+	if is_instance_valid(_particles):
+		_particles.emit_death(point, impact_velocity, color)
 	queue_redraw()
 
 
@@ -102,6 +139,14 @@ func get_active_effect_count() -> int:
 
 func has_audio_layer(layer: String) -> bool:
 	return _audio_streams.has(layer) and is_instance_valid(_audio_streams[layer])
+
+
+func get_audio_characteristics(layer: String) -> Dictionary:
+	return (_audio_characteristics.get(layer, {}) as Dictionary).duplicate()
+
+
+func get_ballistic_particle_count() -> int:
+	return _particles.get_particle_count() if is_instance_valid(_particles) else 0
 
 
 func _play_audio(layer: String, world_position: Vector2, intensity: float) -> void:
@@ -143,6 +188,50 @@ func _make_tone(frequency: float, duration: float, gain: float, harmonic: float)
 	stream.stereo = false
 	stream.data = bytes
 	return stream
+
+
+func _make_crisp_transient(
+	duration: float,
+	gain: float,
+	start_frequency: float,
+	end_frequency: float,
+	noise_mix: float,
+	seed: int
+) -> AudioStreamWAV:
+	var sample_count := maxi(1, roundi(duration * float(SAMPLE_RATE)))
+	var bytes := PackedByteArray()
+	bytes.resize(sample_count * 2)
+	var oscillator_phase := 0.0
+	var previous_noise := 0.0
+	for index in range(sample_count):
+		var ratio := float(index) / float(maxi(1, sample_count - 1))
+		var attack := minf(1.0, ratio * 80.0)
+		var envelope := attack * pow(1.0 - ratio, 3.4)
+		var frequency := lerpf(start_frequency, end_frequency, ratio)
+		oscillator_phase += TAU * frequency / float(SAMPLE_RATE)
+		var raw_noise := _deterministic_noise(index, seed)
+		# A first difference removes slow noise energy and gives the cast its
+		# short, airy "zi" edge without relying on an authored sample.
+		var bright_noise := clampf((raw_noise - previous_noise) * 0.72, -1.0, 1.0)
+		previous_noise = raw_noise
+		var pitched := sin(oscillator_phase) * 0.72 + sin(oscillator_phase * 1.83) * 0.20
+		var sample := lerpf(pitched, bright_noise, noise_mix)
+		# One-sample attack click adds definition to impacts but remains bounded.
+		if index == 1:
+			sample += 0.26
+		var value := clampi(roundi(sample * envelope * gain * 32767.0), -32768, 32767)
+		bytes.encode_s16(index * 2, value)
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = SAMPLE_RATE
+	stream.stereo = false
+	stream.data = bytes
+	return stream
+
+
+func _deterministic_noise(index: int, seed: int) -> float:
+	var value := sin(float(index * 19 + seed * 131) * 12.9898) * 43758.5453
+	return (value - floor(value)) * 2.0 - 1.0
 
 
 func _draw() -> void:

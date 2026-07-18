@@ -9,6 +9,7 @@ signal extractor_requested(origin: Vector2, direction: Vector2)
 signal state_changed(state: Dictionary)
 signal action_denied(reason: String)
 signal died
+signal teleported(world_position: Vector2)
 
 @export var material_world_path: NodePath
 @export var walk_speed: float = 62.0
@@ -66,6 +67,10 @@ func _ready() -> void:
 	if is_instance_valid(_material_world):
 		_update_gravity_basis()
 		_resolve_initial_overlap()
+	# A reset is a discontinuity, not movement. Discard the previous physics
+	# transform so render interpolation cannot draw a trail from the old spawn.
+	reset_physics_interpolation()
+	teleported.emit(global_position)
 	_emit_state_if_changed(true)
 	queue_redraw()
 
@@ -132,6 +137,10 @@ func reset_player(world_position: Vector2) -> void:
 	if is_instance_valid(_material_world):
 		_update_gravity_basis()
 		_resolve_initial_overlap()
+	# A reset is a discontinuity, not movement. Discard the previous physics
+	# transform so render interpolation cannot draw a trail from the old spawn.
+	reset_physics_interpolation()
+	teleported.emit(global_position)
 	_emit_state_if_changed(true)
 	queue_redraw()
 
