@@ -211,7 +211,7 @@ func _test_projectile_ballistics() -> bool:
 	projectile.global_position = Vector2(1000.0, 1000.0)
 	projectile.velocity = Vector2(profile.projectile_speed, 0.0)
 	projectile.simulate_step(320.0 / profile.projectile_speed)
-	var view_drop := projectile.global_position.y - 1000.0
+	var view_drop: float = projectile.global_position.y - 1000.0
 	if absf(view_drop - 4.8) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("one-view ballistic drop left the visible-but-small band: %.4f" % view_drop)
