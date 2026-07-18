@@ -147,16 +147,26 @@ godot --path game --editor
 godot --headless --path game --quit-after 240
 godot --headless --path game --script res://tests/demo_smoke.gd
 godot --headless --path game --script res://tests/demo_benchmark.gd
+godot --headless --path game --script res://tests/combat_core_smoke.gd
+godot --headless --path game --script res://tests/combat_lab_smoke.gd
 ```
 
-当前启动场景会直接进入早期物理 Demo。GDExtension 尚未接入，因此 Demo 使用临时 GDScript 模拟器，不会加载 C++ 模拟。
+当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。GDExtension 尚未接入，因此两个场景都使用临时 GDScript 模拟器，不会加载 C++ 模拟。
 
-操作：
+战斗实验场操作：
 
 - `A / D`：沿星体表面移动；
 - `W / Space`：跳跃；
 - `Shift`：朝光标方向推进，消耗核力；
-- `鼠标左键 / F`：发射当前星种；
+- `按住鼠标左键 / F`：连续发射高速幼年星种；
+- `R`：重置实验场、靶子和枪感指标；
+- `Esc`：返回原早期物理 Demo。
+
+实验场包含可射击墙面、静止靶、移动靶和七发击杀的普通敌人。屏幕左上角显示实时射速、首发延迟、命中率与击杀数；本阶段只验证瞄准—开火—命中主干，不接入物质构筑。
+
+原物理 Demo 操作：
+
+- `鼠标左键 / F`：发射当前成熟星种；
 - `鼠标右键`：采掘岩石、砂和金属，补充物质储量；
 - `1 / 2 / 3`：切换引核星种、蒸汽矛和斥裂核；
 - `鼠标滚轮`：循环切换星种；

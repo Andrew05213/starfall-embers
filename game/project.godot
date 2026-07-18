@@ -7,7 +7,7 @@ config_version=5
 
 config/name="坠星余烬"
 config/description="Fallen Stars, Living Matter — early physics prototype"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/combat_lab.tscn"
 
 [display]
 
