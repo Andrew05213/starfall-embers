@@ -209,6 +209,7 @@ func _test_projectile_lifetime() -> bool:
 
 func _test_projectile_ballistics() -> bool:
 	var world := ConstantGravity.new()
+	world.acceleration = Vector2(0.0, 320.0)
 	root.add_child(world)
 	var profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
 	var invalid_profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
@@ -225,11 +226,16 @@ func _test_projectile_ballistics() -> bool:
 	if absf(displacement.x - 120.0) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile lost high horizontal speed: %s" % displacement)
-	var expected_short_drop := 0.675 * profile.projectile_gravity_scale
+	var expected_short_drop := (
+		0.5 * world.acceleration.y * profile.projectile_gravity_scale * 0.1 * 0.1
+	)
 	if absf(displacement.y - expected_short_drop) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile did not integrate local gravity: %s" % displacement)
-	if absf(projectile.velocity.y - 13.5 * profile.projectile_gravity_scale) > EPSILON:
+	var expected_short_vertical_speed := (
+		world.acceleration.y * profile.projectile_gravity_scale * 0.1
+	)
+	if absf(projectile.velocity.y - expected_short_vertical_speed) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("ballistic projectile velocity did not inherit gravity: %s" % projectile.velocity)
 
@@ -239,7 +245,14 @@ func _test_projectile_ballistics() -> bool:
 	projectile.velocity = Vector2(profile.projectile_speed, 0.0)
 	projectile.simulate_step(320.0 / profile.projectile_speed)
 	var view_drop: float = projectile.global_position.y - 1000.0
-	var expected_view_drop := 4.8 * profile.projectile_gravity_scale
+	var view_crossing_time := 320.0 / profile.projectile_speed
+	var expected_view_drop := (
+		0.5
+		* world.acceleration.y
+		* profile.projectile_gravity_scale
+		* view_crossing_time
+		* view_crossing_time
+	)
 	if absf(view_drop - expected_view_drop) > EPSILON:
 		_cleanup_nodes([projectile, world])
 		return _fail_bool("one-view ballistic drop differs from configured gravity: %.4f" % view_drop)
