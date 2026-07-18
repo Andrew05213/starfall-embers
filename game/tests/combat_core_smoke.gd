@@ -29,6 +29,31 @@ class ConstantGravity:
 		return false
 
 
+class RadialGravity:
+	extends Node
+
+	var center := Vector2.ZERO
+	var samples: Array[Vector2] = []
+
+	func get_gravity_at(world_position: Vector2) -> Vector2:
+		samples.append(world_position)
+		var inward := center - world_position
+		return inward.normalized() * 135.0 if inward.length_squared() > 0.0001 else Vector2.ZERO
+
+	func is_solid_at(_world_position: Vector2) -> bool:
+		return false
+
+
+class ProjectileInterpolationProbe:
+	extends JuvenileStarseed
+
+	var interpolation_reset_positions: Array[Vector2] = []
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_RESET_PHYSICS_INTERPOLATION:
+			interpolation_reset_positions.append(global_position)
+
+
 func _initialize() -> void:
 	_run.call_deferred()
 
@@ -45,6 +70,8 @@ func _run() -> void:
 	if not await _test_projectile_lifetime():
 		return
 	if not await _test_projectile_ballistics():
+		return
+	if not await _test_radial_projectile_gravity_and_spawn_interpolation():
 		return
 	if not await _test_ballistic_particle_pool():
 		return
@@ -220,6 +247,75 @@ func _test_projectile_ballistics() -> bool:
 	return true
 
 
+func _test_radial_projectile_gravity_and_spawn_interpolation() -> bool:
+	var world := RadialGravity.new()
+	root.add_child(world)
+	var profile: CombatShotProfile = PROFILE_RESOURCE.duplicate()
+	profile.projectile_gravity_scale = 1.0
+	var projectiles: Array[Node] = []
+	var cardinal_spawns := [
+		Vector2(0.0, -1000.0),
+		Vector2(1000.0, 0.0),
+		Vector2(0.0, 1000.0),
+		Vector2(-1000.0, 0.0),
+	]
+	for spawn in cardinal_spawns:
+		world.samples.clear()
+		var inward := (world.center - spawn).normalized()
+		var tangent := Vector2(-inward.y, inward.x)
+		var projectile := ProjectileInterpolationProbe.new()
+		root.add_child(projectile)
+		projectiles.append(projectile)
+		projectile.setup(profile, spawn, tangent, Vector2.ZERO, world)
+		projectile.set_physics_process(false)
+		if (
+			projectile.interpolation_reset_positions.is_empty()
+			or projectile.interpolation_reset_positions.back().distance_to(spawn) > EPSILON
+		):
+			_cleanup_nodes(projectiles + [world])
+			return _fail_bool(
+				"new projectile did not reset interpolation at its muzzle %s: %s"
+				% [spawn, projectile.interpolation_reset_positions]
+			)
+
+		var initial_velocity: Vector2 = projectile.velocity
+		for _step in range(6):
+			projectile.simulate_step(1.0 / 120.0)
+		if world.samples.size() != 6:
+			_cleanup_nodes(projectiles + [world])
+			return _fail_bool(
+				"projectile at %s did not resample moving local gravity: %d samples"
+				% [spawn, world.samples.size()]
+			)
+		if world.samples.front().distance_to(world.samples.back()) < 1.0:
+			_cleanup_nodes(projectiles + [world])
+			return _fail_bool(
+				"projectile at %s repeatedly sampled gravity at its spawn" % spawn
+			)
+		var accumulated_gravity: Vector2 = projectile.velocity - initial_velocity
+		if accumulated_gravity.dot(inward) <= 6.0:
+			_cleanup_nodes(projectiles + [world])
+			return _fail_bool(
+				"projectile at %s did not fall radially inward: delta_velocity=%s"
+				% [spawn, accumulated_gravity]
+			)
+
+		# GravityFollowCamera rotates the world by the inverse of its desired
+		# rotation. Every cardinal inward vector must therefore become screen-down.
+		var local_up := -inward
+		var camera_rotation := local_up.angle() + PI * 0.5
+		var screen_gravity := Transform2D(-camera_rotation, Vector2.ZERO).basis_xform(inward)
+		if screen_gravity.y <= 0.999 or absf(screen_gravity.x) > EPSILON:
+			_cleanup_nodes(projectiles + [world])
+			return _fail_bool(
+				"gravity at %s does not map to screen-down: %s" % [spawn, screen_gravity]
+			)
+
+	_cleanup_nodes(projectiles + [world])
+	await process_frame
+	return true
+
+
 func _test_ballistic_particle_pool() -> bool:
 	var world := ConstantGravity.new()
 	root.add_child(world)
@@ -242,15 +338,44 @@ func _test_ballistic_particle_pool() -> bool:
 	if float((after["position"] as Vector2).x) <= float((before["position"] as Vector2).x):
 		_cleanup_nodes([particles, world])
 		return _fail_bool("impact particle did not preserve projectile momentum")
+
+	# Particles use the same position-dependent radial gravity contract as the
+	# projectile. Validate every cardinal side instead of only constant screen-down.
+	var radial_world := RadialGravity.new()
+	root.add_child(radial_world)
+	particles.bind_material_world(radial_world)
+	for spawn in [
+		Vector2(0.0, -1000.0),
+		Vector2(1000.0, 0.0),
+		Vector2(0.0, 1000.0),
+		Vector2(-1000.0, 0.0),
+	]:
+		var inward := (radial_world.center - spawn).normalized()
+		var tangent := Vector2(-inward.y, inward.x)
+		var particle_index := particles.get_particle_count()
+		particles.emit_impact(spawn, tangent * 1200.0, Color.WHITE, false)
+		var radial_before := particles.get_particle_snapshot(particle_index)
+		particles.simulate_step(1.0 / 120.0)
+		var radial_after := particles.get_particle_snapshot(particle_index)
+		var radial_before_velocity := radial_before["velocity"] as Vector2
+		var radial_after_velocity := radial_after["velocity"] as Vector2
+		var radial_velocity_delta := radial_after_velocity - radial_before_velocity
+		if radial_velocity_delta.dot(inward) <= 1.0:
+			_cleanup_nodes([particles, world, radial_world])
+			return _fail_bool(
+				"particle at %s did not fall radially inward: delta_velocity=%s"
+				% [spawn, radial_velocity_delta]
+			)
+	particles.bind_material_world(world)
 	for _burst in range(40):
 		particles.emit_impact(Vector2.ZERO, Vector2.RIGHT * 1200.0, Color.WHITE, true)
 	if particles.get_particle_count() != CombatBallisticParticleField.MAX_PARTICLES:
-		_cleanup_nodes([particles, world])
+		_cleanup_nodes([particles, world, radial_world])
 		return _fail_bool(
 			"ballistic particle pool exceeded or failed to fill its cap: %d"
 			% particles.get_particle_count()
 		)
-	_cleanup_nodes([particles, world])
+	_cleanup_nodes([particles, world, radial_world])
 	await process_frame
 	return true
 

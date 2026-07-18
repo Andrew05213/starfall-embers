@@ -18,7 +18,6 @@ var _profile: CombatShotProfile
 var _material_world: Node
 var _age := 0.0
 var _expired := false
-var _trail := PackedVector2Array()
 
 
 func setup(
@@ -31,6 +30,10 @@ func setup(
 	_profile = profile
 	_material_world = material_world
 	global_position = origin
+	# Projectiles are created at Node2D's default origin and configured after
+	# entering the tree. With physics interpolation enabled that assignment would
+	# otherwise render one frame interpolating from world (0, 0) to the muzzle.
+	reset_physics_interpolation()
 	var launch_direction := direction.normalized()
 	if launch_direction.length_squared() <= HIT_EPSILON:
 		launch_direction = Vector2.RIGHT
@@ -40,7 +43,6 @@ func setup(
 	)
 	_age = 0.0
 	_expired = false
-	_trail.clear()
 	add_to_group("juvenile_starseeds")
 	queue_redraw()
 
@@ -65,7 +67,6 @@ func simulate_step(delta: float) -> void:
 		# inside a step is sub-pixel while still preserving continuous collision.
 		var to := from + velocity * step_time + gravity * (0.5 * step_time * step_time)
 		var end_velocity := velocity + gravity * step_time
-		_record_trail(from)
 		var hit := _find_earliest_hit(from, to)
 		if not hit.is_empty():
 			var hit_fraction := float(hit["fraction"])
@@ -78,7 +79,6 @@ func simulate_step(delta: float) -> void:
 		global_position = to
 		velocity = end_velocity
 		traveled.emit(from, to, velocity)
-		_record_trail(to)
 	_age += step_time
 	if _age + HIT_EPSILON >= _profile.projectile_lifetime:
 		_expire("lifetime")
@@ -187,13 +187,6 @@ func _apply_hit(hit: Dictionary) -> void:
 	_expire("impact")
 
 
-func _record_trail(world_point: Vector2) -> void:
-	if _trail.is_empty() or _trail[_trail.size() - 1].distance_squared_to(world_point) >= 4.0:
-		_trail.append(world_point)
-	while _trail.size() > 8:
-		_trail.remove_at(0)
-
-
 func _expire(reason: String) -> void:
 	if _expired:
 		return
@@ -206,12 +199,5 @@ func _expire(reason: String) -> void:
 func _draw() -> void:
 	if not is_instance_valid(_profile):
 		return
-	if not _trail.is_empty():
-		var local_trail := PackedVector2Array()
-		for point in _trail:
-			local_trail.append(to_local(point))
-		local_trail.append(Vector2.ZERO)
-		if local_trail.size() >= 2:
-			draw_polyline(local_trail, Color(_profile.color, 0.55), 1.2)
 	draw_circle(Vector2.ZERO, _profile.collision_radius + 0.8, _profile.color)
 	draw_circle(Vector2.ZERO, maxf(0.7, _profile.collision_radius * 0.45), _profile.core_color)
