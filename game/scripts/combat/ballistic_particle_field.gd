@@ -6,8 +6,8 @@ extends Node2D
 ## gameplay objects, so sparks curve toward the asteroid instead of behaving
 ## like screen-space decoration.
 
-const MAX_PARTICLES := 4096
-const TRAIL_PARTICLES_PER_STEP := 4
+const MAX_PARTICLES := 1024
+const TRAIL_PARTICLES_PER_STEP := 1
 const MIN_LIFETIME := 0.08
 const TRAIL_LONGITUDINAL_MIN_RATIO := 0.10
 const TRAIL_LONGITUDINAL_MAX_RATIO := 0.195
@@ -15,9 +15,9 @@ const TRAIL_LATERAL_RATIO := 0.04
 const TRAIL_SPEED_CAP_RATIO := 0.20
 const TRAIL_LIFETIME := 2.0
 const TRAIL_FADE_DURATION := 0.2
-const TRAIL_VISUAL_SIZE := 0.2
-const TRAIL_VISUAL_GRID := 0.2
-const COLLISION_SAMPLE_STEP := 0.5
+const TRAIL_VISUAL_SIZE := 1.0
+const TRAIL_VISUAL_GRID := 1.0
+const COLLISION_SAMPLE_STEP := 1.0
 const COLLISION_NORMAL_PROBE := 2.0
 const MAX_BOUNCES := 2
 const NORMAL_RESTITUTION := 0.25

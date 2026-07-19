@@ -364,28 +364,31 @@ func _test_ballistic_particle_pool() -> bool:
 		_cleanup_nodes([particles, world])
 		return _fail_bool("trail did not emit the expected per-step particle count")
 	var first_trail_velocity := Vector2.ZERO
-	var has_velocity_variation := false
 	for index in range(particles.get_particle_count()):
 		var trail_particle := particles.get_particle_snapshot(index)
 		var trail_velocity := trail_particle["velocity"] as Vector2
 		if index == 0:
 			first_trail_velocity = trail_velocity
-		elif trail_velocity.distance_to(first_trail_velocity) > 0.1:
-			has_velocity_variation = true
 		if trail_velocity.length() > PROFILE_RESOURCE.projectile_speed * 0.20 + EPSILON:
 			_cleanup_nodes([particles, world])
 			return _fail_bool("trail particle exceeded the one-fifth projectile-speed cap")
 		if absf(float(trail_particle["lifetime"]) - 2.0) > EPSILON:
 			_cleanup_nodes([particles, world])
 			return _fail_bool("trail particle lifetime is not two seconds")
-		if absf(float(trail_particle["size"]) - 0.2) > EPSILON:
+		if absf(float(trail_particle["size"]) - 1.0) > EPSILON:
 			_cleanup_nodes([particles, world])
-			return _fail_bool("trail particle is not the requested 0.2 world-pixel size")
-	if not has_velocity_variation:
+			return _fail_bool("trail particle is not the requested one world-pixel size")
+	particles.emit_trail(Vector2.ZERO, Vector2.RIGHT * 20.0, Vector2.RIGHT * 1200.0, Color.WHITE)
+	var second_trail_velocity := (
+		particles.get_particle_snapshot(CombatBallisticParticleField.TRAIL_PARTICLES_PER_STEP)["velocity"]
+		as Vector2
+	)
+	if second_trail_velocity.distance_to(first_trail_velocity) <= 0.1:
 		_cleanup_nodes([particles, world])
 		return _fail_bool("trail particles did not receive varied initial velocities")
+	var expected_trail_count := CombatBallisticParticleField.TRAIL_PARTICLES_PER_STEP * 2
 	particles.simulate_step(1.79)
-	if particles.get_particle_count() != CombatBallisticParticleField.TRAIL_PARTICLES_PER_STEP:
+	if particles.get_particle_count() != expected_trail_count:
 		_cleanup_nodes([particles, world])
 		return _fail_bool("two-second trail particles were reclaimed before the fade window")
 	for index in range(particles.get_particle_count()):
@@ -394,11 +397,11 @@ func _test_ballistic_particle_pool() -> bool:
 			return _fail_bool("trail brightness changed before 1.8 seconds")
 		var visual_position := particles.get_particle_visual_position(index)
 		if (
-			absf(visual_position.x / 0.2 - roundf(visual_position.x / 0.2)) > EPSILON
-			or absf(visual_position.y / 0.2 - roundf(visual_position.y / 0.2)) > EPSILON
+			absf(visual_position.x - roundf(visual_position.x)) > EPSILON
+			or absf(visual_position.y - roundf(visual_position.y)) > EPSILON
 		):
 			_cleanup_nodes([particles, world])
-			return _fail_bool("trail draw position is not aligned to the 0.2 world-pixel grid")
+			return _fail_bool("trail draw position is not aligned to the one world-pixel grid")
 	particles.simulate_step(0.10)
 	var fade_alpha := particles.get_particle_visual_alpha(0)
 	if fade_alpha < 0.54 or fade_alpha > 0.56:
@@ -507,7 +510,7 @@ func _test_ballistic_particle_collision() -> bool:
 		if (particle["velocity"] as Vector2).length_squared() > EPSILON:
 			_cleanup_nodes([particles, world])
 			return _fail_bool("settled trail particle retained velocity")
-		if float(particle.get("collision_radius", 0.0)) < 0.2 - EPSILON:
+		if float(particle.get("collision_radius", 0.0)) < 1.0 - EPSILON:
 			_cleanup_nodes([particles, world])
 			return _fail_bool("trail particle collision volume is smaller than its visual size")
 	_cleanup_nodes([particles, world])
