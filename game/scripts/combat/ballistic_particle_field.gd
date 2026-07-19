@@ -6,19 +6,27 @@ extends Node2D
 ## gameplay objects, so sparks curve toward the asteroid instead of behaving
 ## like screen-space decoration.
 
-const MAX_PARTICLES := 384
-const TRAIL_PARTICLES_PER_STEP := 2
+const MAX_PARTICLES := 4096
+const TRAIL_PARTICLES_PER_STEP := 4
 const MIN_LIFETIME := 0.08
-const TRAIL_LONGITUDINAL_RATIO := 0.18
-const TRAIL_LATERAL_RATIO := 0.035
+const TRAIL_LONGITUDINAL_MIN_RATIO := 0.10
+const TRAIL_LONGITUDINAL_MAX_RATIO := 0.195
+const TRAIL_LATERAL_RATIO := 0.04
 const TRAIL_SPEED_CAP_RATIO := 0.20
-const TRAIL_LIFETIME_MIN := 0.28
-const TRAIL_LIFETIME_MAX := 0.34
+const TRAIL_LIFETIME := 2.0
+const TRAIL_FADE_DURATION := 0.2
+const TRAIL_VISUAL_SIZE := 0.2
+const TRAIL_VISUAL_GRID := 0.2
+const COLLISION_SAMPLE_STEP := 0.5
+const COLLISION_NORMAL_PROBE := 2.0
+const MAX_BOUNCES := 2
+const NORMAL_RESTITUTION := 0.25
 
 var _material_world: Node
 var _particles: Array[Dictionary] = []
 var _sequence := 0
 var _gravity_scale := 1.0
+var _rng_state := 0x51a7e11
 
 
 func bind_material_world(material_world: Node, gravity_scale: float = 1.0) -> void:
@@ -37,23 +45,26 @@ func emit_trail(from: Vector2, to: Vector2, projectile_velocity: Vector2, color:
 	var side := Vector2(-forward.y, forward.x)
 	for index in range(TRAIL_PARTICLES_PER_STEP):
 		var ratio := (float(index) + 0.5) / float(TRAIL_PARTICLES_PER_STEP)
-		var alternating := -1.0 if (_sequence + index) % 2 == 0 else 1.0
+		var longitudinal_ratio := lerpf(
+			TRAIL_LONGITUDINAL_MIN_RATIO,
+			TRAIL_LONGITUDINAL_MAX_RATIO,
+			_random_unit()
+		)
+		var lateral_ratio := lerpf(-TRAIL_LATERAL_RATIO, TRAIL_LATERAL_RATIO, _random_unit())
 		var particle_velocity := (
-			projectile_velocity * TRAIL_LONGITUDINAL_RATIO
-			+ side * alternating * projectile_speed * TRAIL_LATERAL_RATIO
+			projectile_velocity * longitudinal_ratio
+			+ side * projectile_speed * lateral_ratio
 		)
 		particle_velocity = particle_velocity.limit_length(
 			projectile_speed * TRAIL_SPEED_CAP_RATIO
-		)
-		var lifetime_ratio := (
-			float(index) / float(maxi(TRAIL_PARTICLES_PER_STEP - 1, 1))
 		)
 		_spawn(
 			from.lerp(to, ratio),
 			particle_velocity,
 			color,
-			lerpf(TRAIL_LIFETIME_MIN, TRAIL_LIFETIME_MAX, lifetime_ratio),
-			0.85
+			TRAIL_LIFETIME,
+			TRAIL_VISUAL_SIZE,
+			"trail"
 		)
 	_sequence += TRAIL_PARTICLES_PER_STEP
 
@@ -95,9 +106,31 @@ func simulate_step(delta: float) -> void:
 			continue
 		var position := particle["position"] as Vector2
 		var velocity := particle["velocity"] as Vector2
-		var gravity := _get_gravity_at(position) * _gravity_scale
-		particle["position"] = position + velocity * step + gravity * (0.5 * step * step)
-		particle["velocity"] = velocity + gravity * step
+		if not bool(particle.get("settled", false)):
+			var gravity := _get_gravity_at(position) * _gravity_scale
+			var next_position := position + velocity * step + gravity * (0.5 * step * step)
+			var next_velocity := velocity + gravity * step
+			var collision := _sweep_collision(
+				position,
+				next_position,
+				float(particle.get("collision_radius", TRAIL_VISUAL_SIZE))
+			)
+			if bool(collision.get("hit", false)):
+				var normal := _estimate_collision_normal(
+					collision["contact"] as Vector2,
+					next_velocity
+				)
+				var bounces := int(particle.get("bounces", 0)) + 1
+				particle["position"] = collision["safe_position"] as Vector2
+				particle["bounces"] = bounces
+				if bounces >= MAX_BOUNCES:
+					particle["velocity"] = Vector2.ZERO
+					particle["settled"] = true
+				else:
+					particle["velocity"] = resolve_bounce_velocity(next_velocity, normal)
+			else:
+				particle["position"] = next_position
+				particle["velocity"] = next_velocity
 		particle["age"] = age
 		_particles[index] = particle
 	queue_redraw()
@@ -113,6 +146,27 @@ func get_particle_snapshot(index: int) -> Dictionary:
 	return _particles[index].duplicate()
 
 
+func get_particle_visual_alpha(index: int) -> float:
+	if index < 0 or index >= _particles.size():
+		return 0.0
+	return _particle_alpha(_particles[index])
+
+
+func get_particle_visual_position(index: int) -> Vector2:
+	if index < 0 or index >= _particles.size():
+		return Vector2.ZERO
+	return _snap_to_visual_grid(_particles[index]["position"] as Vector2)
+
+
+static func resolve_bounce_velocity(velocity: Vector2, contact_normal: Vector2) -> Vector2:
+	var normal := contact_normal.normalized()
+	if normal.length_squared() <= 0.000001:
+		return -velocity * NORMAL_RESTITUTION
+	var normal_component := normal * velocity.dot(normal)
+	var tangent_component := velocity - normal_component
+	return tangent_component - normal_component * NORMAL_RESTITUTION
+
+
 func _process(delta: float) -> void:
 	simulate_step(delta)
 
@@ -122,7 +176,8 @@ func _spawn(
 	velocity: Vector2,
 	color: Color,
 	lifetime: float,
-	size: float
+	size: float,
+	kind: String = "effect"
 ) -> void:
 	while _particles.size() >= MAX_PARTICLES:
 		_particles.remove_at(0)
@@ -133,7 +188,62 @@ func _spawn(
 		"age": 0.0,
 		"lifetime": maxf(lifetime, MIN_LIFETIME),
 		"size": size,
+		"kind": kind,
+		"collision_radius": maxf(size, TRAIL_VISUAL_SIZE),
+		"bounces": 0,
+		"settled": false,
 	})
+
+
+func _sweep_collision(from: Vector2, to: Vector2, radius: float) -> Dictionary:
+	if not _can_collide():
+		return {"hit": false}
+	if _is_particle_colliding(from, radius):
+		return {"hit": true, "safe_position": from, "contact": from}
+	var distance := from.distance_to(to)
+	var steps := maxi(1, ceili(distance / COLLISION_SAMPLE_STEP))
+	var safe_position := from
+	for step_index in range(1, steps + 1):
+		var candidate := from.lerp(to, float(step_index) / float(steps))
+		if _is_particle_colliding(candidate, radius):
+			return {
+				"hit": true,
+				"safe_position": safe_position,
+				"contact": candidate,
+			}
+		safe_position = candidate
+	return {"hit": false}
+
+
+func _is_particle_colliding(point: Vector2, radius: float) -> bool:
+	if _is_solid_at(point):
+		return true
+	for offset in [Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP]:
+		if _is_solid_at(point + offset * radius):
+			return true
+	return false
+
+
+func _estimate_collision_normal(contact: Vector2, incoming_velocity: Vector2) -> Vector2:
+	var solid_right := 1.0 if _is_solid_at(contact + Vector2.RIGHT * COLLISION_NORMAL_PROBE) else 0.0
+	var solid_left := 1.0 if _is_solid_at(contact + Vector2.LEFT * COLLISION_NORMAL_PROBE) else 0.0
+	var solid_down := 1.0 if _is_solid_at(contact + Vector2.DOWN * COLLISION_NORMAL_PROBE) else 0.0
+	var solid_up := 1.0 if _is_solid_at(contact + Vector2.UP * COLLISION_NORMAL_PROBE) else 0.0
+	var into_solid := Vector2(solid_right - solid_left, solid_down - solid_up)
+	var normal := -into_solid.normalized()
+	if normal.length_squared() <= 0.000001:
+		normal = -incoming_velocity.normalized()
+	if normal.dot(incoming_velocity) > 0.0:
+		normal = -normal
+	return normal
+
+
+func _can_collide() -> bool:
+	return is_instance_valid(_material_world) and _material_world.has_method("is_solid_at")
+
+
+func _is_solid_at(point: Vector2) -> bool:
+	return _can_collide() and bool(_material_world.call("is_solid_at", point))
 
 
 func _get_gravity_at(world_point: Vector2) -> Vector2:
@@ -145,6 +255,11 @@ func _get_gravity_at(world_point: Vector2) -> Vector2:
 	return _material_world.call("get_gravity_at", world_point) as Vector2
 
 
+func _random_unit() -> float:
+	_rng_state = int((_rng_state * 1103515245 + 12345) & 0x7fffffff)
+	return float(_rng_state) / 2147483647.0
+
+
 func _signed_pattern(index: int, count: int) -> float:
 	if count <= 1:
 		return 0.0
@@ -153,15 +268,37 @@ func _signed_pattern(index: int, count: int) -> float:
 
 func _draw() -> void:
 	for particle in _particles:
-		var age_ratio := clampf(
-			float(particle["age"]) / maxf(float(particle["lifetime"]), 0.001),
-			0.0,
-			1.0
-		)
-		var fade := 1.0 - age_ratio
-		var position := to_local(particle["position"] as Vector2)
+		var fade := _particle_alpha(particle)
+		var world_position := particle["position"] as Vector2
+		var position := to_local(world_position)
 		var velocity := particle["velocity"] as Vector2
 		var color := Color(particle["color"] as Color, fade)
+		if str(particle.get("kind", "effect")) == "trail":
+			var snapped_position := to_local(_snap_to_visual_grid(world_position))
+			var half_size := TRAIL_VISUAL_SIZE * 0.5
+			draw_rect(
+				Rect2(snapped_position - Vector2.ONE * half_size, Vector2.ONE * TRAIL_VISUAL_SIZE),
+				color
+			)
+			continue
 		var tail := -velocity.normalized() * minf(4.5, velocity.length() * 0.025) * fade
 		draw_line(position, position + tail, color, maxf(0.6, float(particle["size"]) * fade))
 		draw_circle(position, maxf(0.35, float(particle["size"]) * fade), color)
+
+
+func _particle_alpha(particle: Dictionary) -> float:
+	var age := float(particle["age"])
+	var lifetime := maxf(float(particle["lifetime"]), 0.001)
+	if str(particle.get("kind", "effect")) == "trail":
+		var fade_start := maxf(0.0, lifetime - TRAIL_FADE_DURATION)
+		if age <= fade_start:
+			return 1.0
+		return clampf((lifetime - age) / TRAIL_FADE_DURATION, 0.0, 1.0)
+	return 1.0 - clampf(age / lifetime, 0.0, 1.0)
+
+
+func _snap_to_visual_grid(world_position: Vector2) -> Vector2:
+	return Vector2(
+		roundf(world_position.x / TRAIL_VISUAL_GRID) * TRAIL_VISUAL_GRID,
+		roundf(world_position.y / TRAIL_VISUAL_GRID) * TRAIL_VISUAL_GRID
+	)
