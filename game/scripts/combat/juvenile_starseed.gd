@@ -21,6 +21,8 @@ var _material_world: Node
 var _age := 0.0
 var _expired := false
 var _visual_local_offset := Vector2.ZERO
+var _previous_visual_physics_position := Vector2.ZERO
+var _current_visual_physics_position := Vector2.ZERO
 
 
 func setup(
@@ -37,7 +39,9 @@ func setup(
 	# entering the tree. With physics interpolation enabled that assignment would
 	# otherwise render one frame interpolating from world (0, 0) to the muzzle.
 	reset_physics_interpolation()
-	_update_visual_alignment(global_transform)
+	_previous_visual_physics_position = origin
+	_current_visual_physics_position = origin
+	_visual_local_offset = pixel_align_visual_position(origin) - origin
 	var launch_direction := direction.normalized()
 	if launch_direction.length_squared() <= HIT_EPSILON:
 		launch_direction = Vector2.RIGHT
@@ -55,7 +59,15 @@ func _process(_delta: float) -> void:
 	# Physics and swept collision keep their sub-pixel world positions. Only the
 	# rendered juvenile is moved to the nearest world-pixel cell so gravity arcs
 	# remain smooth while the projectile stays true pixel art.
-	_update_visual_alignment(get_global_transform_interpolated())
+	var interpolation_fraction := Engine.get_physics_interpolation_fraction()
+	var interpolated_world_position := _previous_visual_physics_position.lerp(
+		_current_visual_physics_position,
+		interpolation_fraction
+	)
+	_visual_local_offset = (
+		pixel_align_visual_position(interpolated_world_position)
+		- interpolated_world_position
+	)
 	queue_redraw()
 
 
@@ -73,6 +85,7 @@ func simulate_step(delta: float) -> void:
 	var step_time := minf(maxf(delta, 0.0), remaining_lifetime)
 	if step_time > 0.0:
 		var from := global_position
+		_previous_visual_physics_position = _current_visual_physics_position
 		var gravity := _get_gravity_at(from) * _profile.projectile_gravity_scale
 		# Integrate the ballistic arc analytically over one fixed physics step.
 		# Collision uses its chord; at 60 Hz and the rifle's speed the curvature
@@ -83,12 +96,14 @@ func simulate_step(delta: float) -> void:
 		if not hit.is_empty():
 			var hit_fraction := float(hit["fraction"])
 			global_position = hit["point"] as Vector2
+			_current_visual_physics_position = global_position
 			velocity += gravity * step_time * hit_fraction
 			traveled.emit(from, global_position, velocity)
 			_age += step_time * hit_fraction
 			_apply_hit(hit)
 			return
 		global_position = to
+		_current_visual_physics_position = to
 		velocity = end_velocity
 		traveled.emit(from, to, velocity)
 	_age += step_time
@@ -117,11 +132,6 @@ static func pixel_align_visual_position(world_position: Vector2) -> Vector2:
 		roundf(world_position.x / VISUAL_GRID_SIZE) * VISUAL_GRID_SIZE,
 		roundf(world_position.y / VISUAL_GRID_SIZE) * VISUAL_GRID_SIZE
 	)
-
-
-func _update_visual_alignment(render_transform: Transform2D) -> void:
-	var snapped_world_position := pixel_align_visual_position(render_transform.origin)
-	_visual_local_offset = render_transform.affine_inverse() * snapped_world_position
 
 
 func _get_gravity_at(world_point: Vector2) -> Vector2:
