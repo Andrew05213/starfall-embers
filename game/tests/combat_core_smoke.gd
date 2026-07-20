@@ -220,6 +220,16 @@ func _test_projectile_lifetime() -> bool:
 
 
 func _test_projectile_ballistics() -> bool:
+	if absf(JuvenileStarseed.VISUAL_PIXEL_SIZE - 1.0) > EPSILON:
+		return _fail_bool("juvenile starseed visual is not built from one world-pixel cells")
+	var aligned_visual_position := JuvenileStarseed.pixel_align_visual_position(
+		Vector2(12.49, -7.51)
+	)
+	if aligned_visual_position.distance_to(Vector2(12.0, -8.0)) > EPSILON:
+		return _fail_bool(
+			"juvenile starseed visual did not align to the world-pixel grid: %s"
+			% aligned_visual_position
+		)
 	var world := ConstantGravity.new()
 	world.acceleration = Vector2(0.0, 320.0)
 	root.add_child(world)

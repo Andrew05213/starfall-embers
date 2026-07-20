@@ -166,6 +166,8 @@ godot --headless --path game --script res://tests/combat_lab_smoke.gd
 
 Gate 1 弹道坠性由 [`game/resources/combat/basic_rifle.tres`](game/resources/combat/basic_rifle.tres) 中的 `projectile_gravity_scale` 调整；Combat Lab 的 `MaterialWorld.primary_gravity_acceleration` 表示地表重力 `g_surface`，当前为 `320 world px/s²`，`primary_surface_radius` 表示参考半径 `R`。主星球外部遵循平方反比 `g(r)=g_surface×(R/r)²`；内部使用连续的均匀球模型 `g(r)=g_surface×(r/R)`，因此核心为零重力，不产生奇点。忽略一屏范围内极小的重力变化，横跨可见世界宽度 `W` 的估算下坠量为 `drop = 0.5 × g_local × projectile_gravity_scale × (W / projectile_speed)²`。当前玩家接近地表，`g_local≈320`、`W=320`、速度 `1200`、倍率 `1.30`，约下坠 `14.8 world px`；弹道粒子使用相同倍率。拖尾粒子以每个物理步一粒、约每 `20 world px` 一粒的密度沿弹道补点，寿命固定为 `2.0 s`：前 `1.8 s` 亮度不变，最后 `0.2 s` 线性淡出。粒子以 `1 world px` 的方形点绘制并对齐同尺寸网格，初速度在弹速的 `10%～20%` 范围内随机且硬限制不超过 `20%`。粒子生成后在独立世界坐标中运动，具有至少 `1 world px` 的碰撞体积；碰撞时切向速度保持不变，法向速度反向衰减为四分之一，第二次碰撞后静止直至寿命结束。为控制持续拖尾的 CPU 成本，池容量限制为 `1024`，碰撞扫掠步长为 `1 world px`。
 
+高速幼种子弹使用由 `1 world px` 单元组成的像素图元，渲染位置对齐世界整数网格；物理位置、重力积分与扫掠碰撞仍保留亚像素精度，因此视觉量化不会改变弹道或命中。
+
 `MaterialWorld.add_gravity_source()` 创建的是有明确作用半径、半径内线性衰减的临时规则场，用于星种或人造装置；它不代表自然天体引力，也不采用平方反比。自然主重力与这些局部规则场会以向量相加。
 
 原物理 Demo 操作：

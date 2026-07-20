@@ -11,6 +11,8 @@ signal traveled(from: Vector2, to: Vector2, travel_velocity: Vector2)
 
 const TERRAIN_SAMPLE_STEP := 0.8
 const HIT_EPSILON := 0.000001
+const VISUAL_PIXEL_SIZE := 1.0
+const VISUAL_GRID_SIZE := 1.0
 
 var velocity := Vector2.ZERO
 
@@ -18,6 +20,7 @@ var _profile: CombatShotProfile
 var _material_world: Node
 var _age := 0.0
 var _expired := false
+var _visual_local_offset := Vector2.ZERO
 
 
 func setup(
@@ -34,6 +37,7 @@ func setup(
 	# entering the tree. With physics interpolation enabled that assignment would
 	# otherwise render one frame interpolating from world (0, 0) to the muzzle.
 	reset_physics_interpolation()
+	_update_visual_alignment(global_transform)
 	var launch_direction := direction.normalized()
 	if launch_direction.length_squared() <= HIT_EPSILON:
 		launch_direction = Vector2.RIGHT
@@ -44,6 +48,14 @@ func setup(
 	_age = 0.0
 	_expired = false
 	add_to_group("juvenile_starseeds")
+	queue_redraw()
+
+
+func _process(_delta: float) -> void:
+	# Physics and swept collision keep their sub-pixel world positions. Only the
+	# rendered juvenile is moved to the nearest world-pixel cell so gravity arcs
+	# remain smooth while the projectile stays true pixel art.
+	_update_visual_alignment(get_global_transform_interpolated())
 	queue_redraw()
 
 
@@ -98,6 +110,18 @@ func get_lifetime_ratio() -> float:
 	if not is_instance_valid(_profile) or _profile.projectile_lifetime <= 0.0:
 		return 1.0
 	return clampf(_age / _profile.projectile_lifetime, 0.0, 1.0)
+
+
+static func pixel_align_visual_position(world_position: Vector2) -> Vector2:
+	return Vector2(
+		roundf(world_position.x / VISUAL_GRID_SIZE) * VISUAL_GRID_SIZE,
+		roundf(world_position.y / VISUAL_GRID_SIZE) * VISUAL_GRID_SIZE
+	)
+
+
+func _update_visual_alignment(render_transform: Transform2D) -> void:
+	var snapped_world_position := pixel_align_visual_position(render_transform.origin)
+	_visual_local_offset = render_transform.affine_inverse() * snapped_world_position
 
 
 func _get_gravity_at(world_point: Vector2) -> Vector2:
@@ -199,5 +223,12 @@ func _expire(reason: String) -> void:
 func _draw() -> void:
 	if not is_instance_valid(_profile):
 		return
-	draw_circle(Vector2.ZERO, _profile.collision_radius + 0.8, _profile.color)
-	draw_circle(Vector2.ZERO, maxf(0.7, _profile.collision_radius * 0.45), _profile.core_color)
+	# A 3 x 3 block with a distinct 1 px core avoids circles, antialiasing,
+	# rotation and fractional-size primitives.
+	var half_pixel := VISUAL_PIXEL_SIZE * 0.5
+	var pixel_rect := Rect2(
+		_visual_local_offset - Vector2.ONE * half_pixel,
+		Vector2.ONE * VISUAL_PIXEL_SIZE
+	)
+	draw_rect(pixel_rect.grow(VISUAL_PIXEL_SIZE), _profile.color)
+	draw_rect(pixel_rect, _profile.core_color)
