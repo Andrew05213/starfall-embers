@@ -48,7 +48,7 @@ jobs:
 
 
   windows-native-bridge:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -201,4 +201,3 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_shadow_smoke.gd
-
