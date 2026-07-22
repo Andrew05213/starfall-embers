@@ -63,7 +63,8 @@ jobs:
           sudo apt-get install --yes ccache
 
       - name: Restore native compiler cache
-        uses: actions/cache@v4
+        id: ccache
+        uses: actions/cache/restore@v4
         with:
           path: /home/runner/.cache/ccache
           key: godot-bridge-ccache-${{ runner.os }}-${{ hashFiles('.gitmodules') }}
@@ -92,10 +93,29 @@ jobs:
       - name: Build native Godot bridge
         run: cmake --build build/godot-bridge --target starfall_godot_bridge
 
+      - name: Save native compiler cache
+        if: steps.ccache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /home/runner/.cache/ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
+
       - name: Import Godot project
-        run: >-
-          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
-          --headless --path game --import
+        run: |
+          set -uo pipefail
+          GODOT_BIN="/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          set +e
+          "${GODOT_BIN}" --headless --path game --import
+          FIRST_IMPORT_STATUS=$?
+          set -e
+          if [[ ${FIRST_IMPORT_STATUS} -eq 0 ]]; then
+            exit 0
+          fi
+          if [[ ${FIRST_IMPORT_STATUS} -ne 134 ]]; then
+            exit "${FIRST_IMPORT_STATUS}"
+          fi
+          echo "First project scan exited with SIGABRT; requiring a clean cached import."
+          "${GODOT_BIN}" --headless --path game --import
 
       - name: Run Godot demo smoke test
         run: >-
