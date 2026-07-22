@@ -63,7 +63,7 @@
 
 | 层级 | 方案 | 职责 |
 | --- | --- | --- |
-| 游戏表现层 | Godot 4.6.3 Standard | 场景、输入、UI、音频、渲染与编辑器工作流；4.7 稳定后再评估升级 |
+| 游戏表现层 | Godot 4.7.1 Standard | 场景、输入、UI、音频、渲染与编辑器工作流；GDExtension 保持 4.6 API 兼容下限 |
 | 模拟核心 | C++20 `sim_core` | 像素物质、反应、动态重力、星种和确定性状态更新 |
 | 引擎桥接 | 官方 `godot-cpp` GDExtension | 批量传递命令、事件和脏区块，不做逐像素跨边界调用 |
 | 构建与测试 | CMake、Ninja、CTest；后续接入 Catch2 | 独立构建、单元测试、集成测试和基准测试 |
@@ -109,7 +109,7 @@ Gate 1.5 的迁移范围、锁定参数和接入顺序见 [`docs/prototypes/gate
 ### 前置工具
 
 - Git 2.40+ 与 Git LFS
-- Godot 4.6.3 Standard（非 .NET 版）
+- Godot 4.7.1 Standard（非 .NET 版）
 - CMake 3.25+
 - Ninja 1.11+
 - 支持 C++20 的编译器：MSVC v143、Clang 16+ 或 GCC 13+

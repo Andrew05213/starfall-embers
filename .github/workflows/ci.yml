@@ -49,7 +49,7 @@ jobs:
   godot-demo:
     runs-on: ubuntu-latest
     env:
-      GODOT_VERSION: 4.6.3
+      GODOT_VERSION: 4.7.1
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
