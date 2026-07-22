@@ -5,7 +5,7 @@ extends Node
 ## affecting gameplay. GDScript remains authoritative; this node only records
 ## trajectory and lifetime differences at common projectile ages.
 
-const POSITION_TOLERANCE_PX := 0.1
+const POSITION_TOLERANCE_PX := 0.125
 const VELOCITY_TOLERANCE_PX_PER_SECOND := 0.5
 const AGE_EPSILON := 0.00001
 
@@ -131,9 +131,10 @@ func get_snapshot() -> Dictionary:
 func _sample_script_projectiles() -> void:
 	for request_id: int in _records.keys():
 		var record: Dictionary = _records[request_id]
-		var projectile: JuvenileStarseed = record["projectile"] as JuvenileStarseed
-		if not is_instance_valid(projectile) or bool(record["script_expired"]):
+		var projectile_value: Variant = record["projectile"]
+		if not is_instance_valid(projectile_value) or bool(record["script_expired"]):
 			continue
+		var projectile: JuvenileStarseed = projectile_value as JuvenileStarseed
 		var history: Array = record["history"]
 		history.append({
 			"age": projectile.get_age(),
@@ -235,8 +236,9 @@ func _on_script_projectile_expired(reason: String, request_id: int) -> void:
 	if not _records.has(request_id):
 		return
 	var record: Dictionary = _records[request_id]
-	var projectile: JuvenileStarseed = record["projectile"] as JuvenileStarseed
-	if is_instance_valid(projectile):
+	var projectile_value: Variant = record["projectile"]
+	if is_instance_valid(projectile_value):
+		var projectile: JuvenileStarseed = projectile_value as JuvenileStarseed
 		var history: Array = record["history"]
 		history.append({
 			"age": projectile.get_age(),

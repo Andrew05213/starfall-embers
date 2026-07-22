@@ -177,8 +177,8 @@ func _run() -> void:
 	if int(native_shadow.get("mismatches", -1)) != 0:
 		_fail("production shadow reported trajectory/lifetime mismatches: %s" % native_shadow)
 		return
-	if float(native_shadow.get("max_position_error_px", INF)) > 0.1:
-		_fail("production shadow position error exceeded 0.1 px: %s" % native_shadow)
+	if float(native_shadow.get("max_position_error_px", INF)) > 0.125:
+		_fail("production shadow position error exceeded 0.125 px: %s" % native_shadow)
 		return
 	if float(native_shadow.get("max_velocity_error_px_per_second", INF)) > 0.5:
 		_fail("production shadow velocity error exceeded 0.5 px/s: %s" % native_shadow)

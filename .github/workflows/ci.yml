@@ -57,10 +57,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install native diagnostics and compiler cache
+      - name: Install native compiler cache
         run: |
           sudo apt-get update
-          sudo apt-get install --yes ccache gdb
+          sudo apt-get install --yes ccache
 
       - name: Restore native compiler cache
         uses: actions/cache@v4
@@ -93,17 +93,9 @@ jobs:
         run: cmake --build build/godot-bridge --target starfall_godot_bridge
 
       - name: Import Godot project
-        run: |
-          set -uo pipefail
-          GODOT_BIN="/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
-          if "${GODOT_BIN}" --headless --path game --editor --quit --verbose; then
-            exit 0
-          fi
-          echo "Godot import aborted; rerunning once under gdb for a native backtrace."
-          gdb --batch --return-child-result \
-            -ex run \
-            -ex "thread apply all bt" \
-            --args "${GODOT_BIN}" --headless --path game --editor --quit --verbose
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --import
 
       - name: Run Godot demo smoke test
         run: >-
