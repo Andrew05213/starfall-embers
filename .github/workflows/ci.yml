@@ -46,6 +46,51 @@ jobs:
       - name: Validate Godot demo contracts
         run: python3 tests/integration/check_godot_demo.py
 
+
+  windows-native-bridge:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure Debug bridge with a unified MSVC runtime
+        run: >-
+          cmake -S . -B build/windows-bridge
+          -G "Visual Studio 17 2022" -A x64
+          -DSTARFALL_BUILD_TESTS=OFF
+          -DSTARFALL_BUILD_GODOT_BRIDGE=ON
+
+      - name: Verify generated MSVC runtime settings
+        shell: pwsh
+        run: |
+          $targets = @(
+            "starfall_sim_core",
+            "godot-cpp",
+            "starfall_godot_bridge"
+          )
+          foreach ($target in $targets) {
+            $project = Get-ChildItem build/windows-bridge -Recurse -Filter "$target.vcxproj" |
+              Select-Object -First 1
+            if (-not $project) {
+              throw "Could not find generated project for $target"
+            }
+            $contents = Get-Content $project.FullName -Raw
+            if ($contents -match "MultiThreadedDebugDLL") {
+              throw "$target still uses the Debug DLL runtime (/MDd)"
+            }
+            if ($contents -notmatch "<RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>") {
+              throw "$target does not use the unified DLL runtime (/MD)"
+            }
+          }
+
+      - name: Build Debug native Godot bridge
+        run: >-
+          cmake --build build/windows-bridge
+          --config Debug
+          --target starfall_godot_bridge
+
   godot-demo:
     runs-on: ubuntu-latest
     env:
@@ -156,3 +201,4 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_shadow_smoke.gd
+
