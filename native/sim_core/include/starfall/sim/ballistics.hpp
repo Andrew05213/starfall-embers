@@ -1,0 +1,162 @@
+#pragma once
+
+#include <cstdint>
+#include <vector>
+
+namespace starfall::sim {
+
+using ProjectileId = std::uint64_t;
+
+struct Vec2 final {
+    double x = 0.0;
+    double y = 0.0;
+
+    [[nodiscard]] constexpr Vec2 operator+(const Vec2& other) const noexcept {
+        return {x + other.x, y + other.y};
+    }
+
+    [[nodiscard]] constexpr Vec2 operator-(const Vec2& other) const noexcept {
+        return {x - other.x, y - other.y};
+    }
+
+    [[nodiscard]] constexpr Vec2 operator*(double scalar) const noexcept {
+        return {x * scalar, y * scalar};
+    }
+
+    constexpr Vec2& operator+=(const Vec2& other) noexcept {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+};
+
+struct PrimaryGravity final {
+    Vec2 center{320.0, 10'020.0};
+    double surface_radius = 10'000.0;
+    double surface_acceleration = 320.0;
+
+    /// Continuous uniform-sphere gravity inside the surface and inverse-square
+    /// gravity outside it. The returned vector always points toward center.
+    [[nodiscard]] Vec2 acceleration_at(Vec2 position) const noexcept;
+    [[nodiscard]] double magnitude_at_distance(double distance) const noexcept;
+};
+
+/// Gate 1's accepted shooting baseline. These values live here solely as a
+/// migration regression fixture; future star-sequence content will submit them
+/// through SpawnProjectileCommand instead of changing simulation code.
+struct Gate1BallisticBaseline final {
+    static constexpr std::uint32_t ticks_per_second = 30;
+    static constexpr double projectile_speed = 1'200.0;
+    static constexpr double projectile_lifetime = 0.55;
+    static constexpr double projectile_gravity_scale = 1.3;
+
+    [[nodiscard]] static constexpr PrimaryGravity gravity() noexcept {
+        return {
+            .center = {320.0, 10'020.0},
+            .surface_radius = 10'000.0,
+            .surface_acceleration = 320.0,
+        };
+    }
+};
+
+struct SpawnProjectileCommand final {
+    /// Presentation-owned token copied into state and events for correlation.
+    std::uint64_t request_id = 0;
+    Vec2 position{};
+    Vec2 velocity{};
+    double lifetime_seconds = Gate1BallisticBaseline::projectile_lifetime;
+    double gravity_scale = Gate1BallisticBaseline::projectile_gravity_scale;
+};
+
+enum class RetireReason : std::uint8_t {
+    impact,
+    external,
+};
+
+struct RetireProjectileCommand final {
+    ProjectileId projectile_id = 0;
+    RetireReason reason = RetireReason::external;
+};
+
+/// Coarse input boundary. Commands are consumed only at fixed-step boundaries.
+struct ProjectileCommandBatch final {
+    std::vector<SpawnProjectileCommand> spawns;
+    std::vector<RetireProjectileCommand> retires;
+};
+
+struct ProjectileState final {
+    ProjectileId projectile_id = 0;
+    std::uint64_t request_id = 0;
+    Vec2 previous_position{};
+    Vec2 position{};
+    Vec2 velocity{};
+    double age_seconds = 0.0;
+    double lifetime_seconds = 0.0;
+    double gravity_scale = 0.0;
+};
+
+struct ProjectileStateBatch final {
+    std::uint64_t tick = 0;
+    std::vector<ProjectileState> projectiles;
+};
+
+enum class ProjectileEventKind : std::uint8_t {
+    spawned,
+    expired,
+    retired_on_impact,
+    retired_external,
+    rejected,
+};
+
+struct ProjectileEvent final {
+    ProjectileEventKind kind = ProjectileEventKind::rejected;
+    ProjectileId projectile_id = 0;
+    std::uint64_t request_id = 0;
+    std::uint64_t tick = 0;
+    Vec2 position{};
+    Vec2 velocity{};
+};
+
+struct ProjectileEventBatch final {
+    std::uint64_t tick = 0;
+    std::vector<ProjectileEvent> events;
+};
+
+class BallisticSystem final {
+public:
+    explicit BallisticSystem(
+        std::uint32_t ticks_per_second = Gate1BallisticBaseline::ticks_per_second,
+        PrimaryGravity gravity = Gate1BallisticBaseline::gravity()
+    );
+
+    /// Queues one command batch for the next fixed step. A batch is intentionally
+    /// moved in so bridge code can transfer many commands with one boundary
+    /// crossing. Submitting another non-empty batch before step() is an error.
+    void submit(ProjectileCommandBatch commands);
+    void step();
+
+    [[nodiscard]] std::uint32_t ticks_per_second() const noexcept;
+    [[nodiscard]] double fixed_step_seconds() const noexcept;
+    [[nodiscard]] std::uint64_t tick() const noexcept;
+    [[nodiscard]] const PrimaryGravity& gravity() const noexcept;
+    [[nodiscard]] const ProjectileStateBatch& states() const noexcept;
+    [[nodiscard]] const ProjectileEventBatch& events() const noexcept;
+
+private:
+    void process_retires();
+    void process_spawns();
+    void integrate_projectiles();
+    void rebuild_state_batch();
+
+    std::uint32_t ticks_per_second_ = Gate1BallisticBaseline::ticks_per_second;
+    double fixed_step_seconds_ = 1.0 / Gate1BallisticBaseline::ticks_per_second;
+    std::uint64_t tick_ = 0;
+    ProjectileId next_projectile_id_ = 1;
+    PrimaryGravity gravity_{};
+    ProjectileCommandBatch pending_commands_{};
+    std::vector<ProjectileState> active_projectiles_{};
+    ProjectileStateBatch state_batch_{};
+    ProjectileEventBatch event_batch_{};
+};
+
+} // namespace starfall::sim

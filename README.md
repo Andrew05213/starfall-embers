@@ -31,7 +31,7 @@
 - “击败敌人回收坠核尘 → 解锁地维稳定器 → 用引核星种完成激活”的完整胜负闭环；
 - 实时任务、资源、冷却、敌人数和模拟遥测 HUD。
 
-这套像素模拟暂由 GDScript 实现，用于快速验证规则；确认玩法后会按批处理边界迁移到 C++ `sim_core`。
+这套像素模拟的可玩表现暂由 GDScript 实现。Gate 1 枪感验证通过后，项目已开始按批处理边界迁移到 C++ `sim_core`：第一批原生切片覆盖井星自然重力、高速幼种固定步弹道、批量命令、状态快照和事件，并已通过 GDExtension 暴露给 Godot。Combat Lab 的真实发射入口现已并行运行两套弹道，并按相同弹龄比较轨迹、寿命和退役事件；GDScript 仍是权威实现，待碰撞代理迁移与持续回归通过后再切换表现消费者。
 
 ## 核心体验
 
@@ -63,7 +63,7 @@
 
 | 层级 | 方案 | 职责 |
 | --- | --- | --- |
-| 游戏表现层 | Godot 4.7.1 Standard | 场景、输入、UI、音频、渲染与编辑器工作流 |
+| 游戏表现层 | Godot 4.6.3 Standard | 场景、输入、UI、音频、渲染与编辑器工作流；4.7 稳定后再评估升级 |
 | 模拟核心 | C++20 `sim_core` | 像素物质、反应、动态重力、星种和确定性状态更新 |
 | 引擎桥接 | 官方 `godot-cpp` GDExtension | 批量传递命令、事件和脏区块，不做逐像素跨边界调用 |
 | 构建与测试 | CMake、Ninja、CTest；后续接入 Catch2 | 独立构建、单元测试、集成测试和基准测试 |
@@ -80,6 +80,7 @@
 - CPU 是模拟权威源；GPU 负责呈现，不承担首版权威物理状态。
 
 详细边界见 [`docs/architecture.md`](docs/architecture.md)。
+Gate 1.5 的迁移范围、锁定参数和接入顺序见 [`docs/prototypes/gate1-native-migration.md`](docs/prototypes/gate1-native-migration.md)。
 
 ## 仓库结构
 
@@ -88,7 +89,7 @@
 ├── game/                    # Godot 工程、场景、脚本与表现层资源
 ├── native/
 │   ├── sim_core/            # 与引擎无关的 C++20 模拟核心
-│   └── godot_bridge/        # GDExtension 批处理桥（待接入 godot-cpp）
+│   └── godot_bridge/        # GDExtension 批处理桥（Godot 4.6 API 兼容基线）
 ├── content/
 │   ├── src/                 # 人工维护的内容源
 │   ├── schemas/             # JSON Schema
@@ -108,7 +109,7 @@
 ### 前置工具
 
 - Git 2.40+ 与 Git LFS
-- Godot 4.7.1 Standard（非 .NET 版）
+- Godot 4.6.3 Standard（非 .NET 版）
 - CMake 3.25+
 - Ninja 1.11+
 - 支持 C++20 的编译器：MSVC v143、Clang 16+ 或 GCC 13+
@@ -135,6 +136,32 @@ g++ -std=c++20 \
 /tmp/starfall_world_smoke
 ```
 
+### 构建 Godot 原生桥
+
+首次克隆或依赖版本变化后，先取得固定版本的 `godot-cpp` 子模块：
+
+```bash
+git submodule update --init --recursive
+```
+
+然后构建 GDExtension。必须在打开 Godot 工程前完成这一步；生成的动态库位于 `game/addons/starfall_sim/bin/`，属于本地构建产物，不提交仓库。
+
+```bash
+cmake -S . -B build/godot-bridge -G Ninja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DSTARFALL_BUILD_TESTS=OFF \
+  -DSTARFALL_BUILD_GODOT_BRIDGE=ON
+cmake --build build/godot-bridge --target starfall_godot_bridge
+```
+
+构建后可单独验证原生边界：
+
+```bash
+godot --headless --path game --editor --quit
+godot --headless --path game --script res://tests/native_bridge_smoke.gd
+godot --headless --path game --script res://tests/native_shadow_smoke.gd
+```
+
 ### 打开 Godot 工程
 
 ```bash
@@ -151,7 +178,7 @@ godot --headless --path game --script res://tests/combat_core_smoke.gd
 godot --headless --path game --script res://tests/combat_lab_smoke.gd
 ```
 
-当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。GDExtension 尚未接入，因此两个场景都使用临时 GDScript 模拟器，不会加载 C++ 模拟。
+当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。GDExtension 已可加载并通过独立冒烟测试，Combat Lab 也会把真实射击批量送入 C++ 做影子对比；两个可玩场景仍使用临时 GDScript 权威模拟器，在原生碰撞代理和持续回归通过前不会直接切换权威实现。
 
 战斗实验场操作：
 
@@ -194,7 +221,7 @@ Gate 1 弹道坠性由 [`game/resources/combat/basic_rifle.tres`](game/resources
 - 禁止 Godot ↔ C++ 的逐像素调用。
 - 所有随机过程显式携带种子；模拟更新使用固定时间步。
 - `content/generated/` 只能由内容编译器生成，禁止手改。
-- 第三方依赖必须固定版本；`godot-cpp` 必须匹配 Godot 4.7 系列，不跟随浮动 `main`。
+- 第三方依赖必须固定版本；`godot-cpp` 固定为 `10.0.0-rc1`（Godot 4.6 API），不跟随浮动 `main`。
 - 大型二进制资源使用 Git LFS；`.godot/`、构建产物和本地缓存不提交。
 - 改变架构边界或存档兼容性的决策必须新增 ADR。
 

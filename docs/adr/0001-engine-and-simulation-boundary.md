@@ -9,7 +9,7 @@
 
 ## 决策
 
-采用 Godot 4.7.1 Standard 作为表现层；权威模拟放在不依赖 Godot 的 C++20 `sim_core`；两者通过官方 `godot-cpp` GDExtension 批量通信。
+采用 Godot Standard 作为表现层（具体版本政策见 ADR-0002）；权威模拟放在不依赖 Godot 的 C++20 `sim_core`；两者通过官方 `godot-cpp` GDExtension 批量通信。
 
 Godot 拥有场景、输入、UI、音频和渲染。`sim_core` 拥有物质状态、反应、重力、星种逻辑、确定性步进与可持久化模拟状态。桥接层只负责类型转换、生命周期和批传输。
 

@@ -10,6 +10,7 @@ var _hits_total := 0
 var _deaths_total := 0
 var _trigger_time := -1.0
 var _first_shot_latency_ms := -1.0
+var _native_shadow_snapshot: Dictionary = {}
 var _status_label: Label
 var _help_label: Label
 
@@ -70,6 +71,10 @@ func reset_metrics() -> void:
 	_refresh_label()
 
 
+func set_native_shadow_snapshot(snapshot: Dictionary) -> void:
+	_native_shadow_snapshot = snapshot
+
+
 func get_snapshot() -> Dictionary:
 	return {
 		"shots": _shots_total,
@@ -85,9 +90,30 @@ func _refresh_label() -> void:
 	if not is_instance_valid(_status_label):
 		return
 	var latency := "--" if _first_shot_latency_ms < 0.0 else "%.1f ms" % _first_shot_latency_ms
+	var shadow_line := "C++ 影子：未加载"
+	if bool(_native_shadow_snapshot.get("enabled", false)):
+		shadow_line = (
+			"C++ 影子：%d 样本   最大漂移 %.3f px / %.3f px·s⁻¹   异常 %d"
+			% [
+				int(_native_shadow_snapshot.get("compared_samples", 0)),
+				float(_native_shadow_snapshot.get("max_position_error_px", 0.0)),
+				float(_native_shadow_snapshot.get("max_velocity_error_px_per_second", 0.0)),
+				int(_native_shadow_snapshot.get("mismatches", 0)),
+			]
+		)
+	var combat_line := (
+		"射击：%d   命中：%d   击杀：%d   命中率：%d%%"
+		% [
+			_shots_total,
+			_hits_total,
+			_deaths_total,
+			roundi(float(_hits_total) / float(maxi(_shots_total, 1)) * 100.0),
+		]
+	)
 	_status_label.text = (
 		"枪感实验场 / Gate 1\n"
 		+ "射速：%d 发/秒   首发延迟：%s\n" % [_shot_times.size(), latency]
-		+ "射击：%d   命中：%d   击杀：%d   命中率：%d%%"
-		% [_shots_total, _hits_total, _deaths_total, roundi(float(_hits_total) / float(maxi(_shots_total, 1)) * 100.0)]
+		+ combat_line
+		+ "\n"
+		+ shadow_line
 	)

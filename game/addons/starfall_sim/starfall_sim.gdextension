@@ -1,0 +1,18 @@
+[configuration]
+
+entry_symbol = "starfall_sim_library_init"
+compatibility_minimum = "4.6"
+reloadable = true
+
+[libraries]
+
+linux.debug.x86_64 = "res://addons/starfall_sim/bin/libstarfall_sim.linux.debug.x86_64.so"
+linux.release.x86_64 = "res://addons/starfall_sim/bin/libstarfall_sim.linux.release.x86_64.so"
+linux.debug.arm64 = "res://addons/starfall_sim/bin/libstarfall_sim.linux.debug.arm64.so"
+linux.release.arm64 = "res://addons/starfall_sim/bin/libstarfall_sim.linux.release.arm64.so"
+windows.debug.x86_64 = "res://addons/starfall_sim/bin/starfall_sim.windows.debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/starfall_sim/bin/starfall_sim.windows.release.x86_64.dll"
+macos.debug.x86_64 = "res://addons/starfall_sim/bin/libstarfall_sim.macos.debug.x86_64.dylib"
+macos.release.x86_64 = "res://addons/starfall_sim/bin/libstarfall_sim.macos.release.x86_64.dylib"
+macos.debug.arm64 = "res://addons/starfall_sim/bin/libstarfall_sim.macos.debug.arm64.dylib"
+macos.release.arm64 = "res://addons/starfall_sim/bin/libstarfall_sim.macos.release.arm64.dylib"

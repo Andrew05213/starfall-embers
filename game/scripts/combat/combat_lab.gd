@@ -5,6 +5,7 @@ const PROJECTILE_SCRIPT := preload("res://scripts/combat/juvenile_starseed.gd")
 const TARGET_SCRIPT := preload("res://scripts/combat/combat_target.gd")
 
 @onready var material_world: Node = $MaterialWorld
+@onready var native_shadow: NativeBallisticsShadow = $NativeBallisticsShadow
 @onready var player: CombatLabPlayer = $Player
 @onready var feedback: CombatFeedback = $CombatFeedback
 @onready var metrics: CombatMetrics = $CombatMetrics
@@ -32,12 +33,17 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 
+func _process(_delta: float) -> void:
+	metrics.set_native_shadow_snapshot(native_shadow.get_snapshot())
+
+
 func get_lab_state() -> Dictionary:
 	var state := metrics.get_snapshot()
 	state["targets"] = get_tree().get_nodes_in_group("combat_targets").size()
 	state["projectiles"] = get_tree().get_nodes_in_group("juvenile_starseeds").size()
 	state["player_aim"] = player.get_aim_direction()
 	state["fire_interval"] = player.get_fire_interval()
+	state["native_shadow"] = native_shadow.get_snapshot()
 	return state
 
 
@@ -87,6 +93,7 @@ func _reset_lab() -> void:
 	material_world.reset_world()
 	player.reset_combat_player(Vector2(320.0, 10.0))
 	metrics.reset_metrics()
+	native_shadow.configure(material_world)
 	_spawn_target("wall", Vector2(213.0, 5.0), "ShootableWall")
 	_spawn_target("static", Vector2(267.0, -12.0), "StaticTarget")
 	_spawn_target("moving", Vector2(368.0, 5.0), "MovingTarget")
@@ -114,6 +121,7 @@ func _on_juvenile_requested(
 	projectile.z_index = 12
 	add_child(projectile)
 	projectile.setup(profile, origin, direction, inherited_velocity, material_world)
+	native_shadow.track_projectile(projectile, profile)
 	projectile.impacted.connect(_on_projectile_impacted)
 	projectile.traveled.connect(
 		func(from: Vector2, to: Vector2, travel_velocity: Vector2) -> void:

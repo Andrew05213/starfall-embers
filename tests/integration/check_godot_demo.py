@@ -103,6 +103,14 @@ contracts = {
         "simulate_step",
     ),
     GAME / "scripts" / "combat" / "combat_lab.gd": ("get_lab_state",),
+    GAME / "scripts" / "combat" / "combat_metrics.gd": (
+        "set_native_shadow_snapshot",
+    ),
+    GAME / "scripts" / "combat" / "native_ballistics_shadow.gd": (
+        "configure",
+        "track_projectile",
+        "get_snapshot",
+    ),
 }
 
 for path, functions in contracts.items():
@@ -114,6 +122,15 @@ for path, functions in contracts.items():
             re.MULTILINE,
         ) is None:
             fail(f"{path.relative_to(ROOT)} lacks func {function}()")
+
+shadow_source = require_text(GAME / "scripts" / "combat" / "native_ballistics_shadow.gd")
+for native_api in (
+    "StarfallSimulationHost",
+    "submit_projectile_spawns",
+    "get_projectile_state_batch",
+):
+    if native_api not in shadow_source:
+        fail(f"production native shadow lacks {native_api} bridge usage")
 
 main_source = require_text(GAME / "scripts" / "main.gd")
 for action in ("move_left", "move_right", "jump", "fire_starseed"):

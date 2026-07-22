@@ -164,6 +164,46 @@ func _run() -> void:
 	if shots < 9 or shots > 11:
 		_fail("one-second live hold produced %d shots, expected 9-11" % shots)
 		return
+	var native_shadow: Dictionary = state.get("native_shadow", {}) as Dictionary
+	if not bool(native_shadow.get("enabled", false)):
+		_fail("production Combat Lab did not enable the native ballistic shadow")
+		return
+	if int(native_shadow.get("compared_samples", 0)) < 30:
+		_fail("production shadow did not compare enough real projectile samples")
+		return
+	if int(native_shadow.get("completed_lifetimes", 0)) < 3:
+		_fail("production shadow did not observe real projectile lifetime events")
+		return
+	if int(native_shadow.get("mismatches", -1)) != 0:
+		_fail("production shadow reported trajectory/lifetime mismatches: %s" % native_shadow)
+		return
+	if float(native_shadow.get("max_position_error_px", INF)) > 0.1:
+		_fail("production shadow position error exceeded 0.1 px: %s" % native_shadow)
+		return
+	if float(native_shadow.get("max_velocity_error_px_per_second", INF)) > 0.5:
+		_fail("production shadow velocity error exceeded 0.5 px/s: %s" % native_shadow)
+		return
+
+	# Fire once through the production player/lab signal path at a real target.
+	# The C++ slice does not own collision yet, so Godot reports the impact and
+	# the shadow must retire the correlated native projectile in a later batch.
+	for _frame in range(8):
+		await physics_frame
+	var static_target: CombatTarget = lab.get_node("StaticTarget") as CombatTarget
+	var target_screen := lab.get_viewport().get_canvas_transform() * static_target.global_position
+	player.set_aim_screen_position(target_screen)
+	Input.action_press("fire_starseed")
+	await physics_frame
+	Input.action_release("fire_starseed")
+	for _frame in range(10):
+		await physics_frame
+	native_shadow = lab.get_lab_state().get("native_shadow", {}) as Dictionary
+	if int(native_shadow.get("retired_impacts", 0)) < 1:
+		_fail("production shadow did not correlate and retire a real impact: %s" % native_shadow)
+		return
+	if int(native_shadow.get("mismatches", -1)) != 0:
+		_fail("production impact retirement introduced a native mismatch: %s" % native_shadow)
+		return
 
 	lab.queue_free()
 	await process_frame
