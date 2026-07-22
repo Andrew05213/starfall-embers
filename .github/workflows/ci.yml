@@ -89,6 +89,7 @@ jobs:
         run: >-
           cmake --build build/windows-bridge
           --config Debug
+          --parallel
           --target starfall_godot_bridge
 
   godot-demo:
