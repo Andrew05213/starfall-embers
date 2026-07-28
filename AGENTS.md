@@ -19,6 +19,17 @@ benchmarks, and architecture records for Fallen Stars, Living Matter.
 - Keep ZIP archives only when the archive itself is required. Avoid committing both an archive and
   its complete extracted copy; document any approved exception in the reference bundle README.
 
+## Cross-session continuity
+
+- Before planning or modifying repository state, read `docs/handoff/current.md` when it exists.
+- Treat branch, pull-request, CI, worktree, and local-change details in the handoff as a dated
+  snapshot. Reconfirm mutable facts with local Git and GitHub before any write action.
+- Update the handoff in the same scoped change whenever branch relationships, pull-request bases,
+  blockers, protected local work, or reported validation results materially change.
+- The handoff cannot override `content/src`, schemas, ADRs, or the non-negotiable boundaries in this
+  file. When sources conflict, those authoritative sources take precedence.
+- Never put credentials, access tokens, private keys, or other secrets in the handoff.
+
 ## Verification
 
 - Native changes: configure, build, and run CTest.
