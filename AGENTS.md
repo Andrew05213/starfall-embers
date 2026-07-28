@@ -12,8 +12,12 @@ benchmarks, and architecture records for Fallen Stars, Living Matter.
 - Advance authoritative simulation with a fixed timestep and explicit random seeds.
 - Treat `content/src` as authored input and `content/generated` as compiler output.
 - Add an ADR before changing persistence compatibility or a major ownership boundary.
-- Do not commit design-source DOCX files or confidential production documents unless explicitly
-  requested by the project owner.
+- Design-source documents and production assets may be committed only with explicit approval from
+  the project owner; unapproved or confidential materials must not be committed.
+- Store approved large binary files with Git LFS, including every binary type covered by
+  `.gitattributes`.
+- Keep ZIP archives only when the archive itself is required. Avoid committing both an archive and
+  its complete extracted copy; document any approved exception in the reference bundle README.
 
 ## Verification
 
