@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starfall.example/schemas/vertical-slice.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "version",
+    "decision_claims",
+    "starting_state",
+    "journey",
+    "asset_specs"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "const": "well-saga-first-slice" },
+    "title": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "pattern": "^v[0-9]+(\\.[0-9]+)*$" },
+    "decision_claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["decision_id", "value", "asserts_unique"],
+        "properties": {
+          "decision_id": { "type": "string" },
+          "value": {},
+          "asserts_unique": { "type": "boolean" }
+        }
+      }
+    },
+    "starting_state": { "type": "object" },
+    "journey": { "type": "object" },
+    "asset_specs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "location_id",
+          "kind",
+          "native_size",
+          "states",
+          "pixel_rules",
+          "production_status"
+        ],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]+$" },
+          "location_id": { "type": "string" },
+          "kind": { "enum": ["environment", "character", "device"] },
+          "native_size": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["width", "height"],
+            "properties": {
+              "width": { "const": 160 },
+              "height": { "const": 90 }
+            }
+          },
+          "states": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "pixel_rules": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["character_scale_px", "alpha", "palette_max"],
+            "properties": {
+              "character_scale_px": { "const": 20 },
+              "alpha": { "const": "binary-hard-edge" },
+              "palette_max": { "type": "number", "maximum": 48, "minimum": 1 }
+            }
+          },
+          "production_status": { "const": "specification-only" }
+        }
+      }
+    }
+  }
+}

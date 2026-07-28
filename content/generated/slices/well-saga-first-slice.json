@@ -1,0 +1,265 @@
+{
+  "asset_specs": [
+    {
+      "id": "saga.outer-day-city.environment",
+      "kind": "environment",
+      "location_id": "saga.outer-day-city",
+      "native_size": {
+        "height": 90,
+        "width": 160
+      },
+      "pixel_rules": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "palette_max": 48
+      },
+      "production_status": "specification-only",
+      "states": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "id": "saga.inner-sea-dome.environment",
+      "kind": "environment",
+      "location_id": "saga.inner-sea-dome",
+      "native_size": {
+        "height": 90,
+        "width": 160
+      },
+      "pixel_rules": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "palette_max": 48
+      },
+      "production_status": "specification-only",
+      "states": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "id": "saga.no-down-city.environment",
+      "kind": "environment",
+      "location_id": "saga.no-down-city",
+      "native_size": {
+        "height": 90,
+        "width": 160
+      },
+      "pixel_rules": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "palette_max": 48
+      },
+      "production_status": "specification-only",
+      "states": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "id": "saga.axis-pillar.environment",
+      "kind": "environment",
+      "location_id": "saga.axis-pillar",
+      "native_size": {
+        "height": 90,
+        "width": 160
+      },
+      "pixel_rules": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "palette_max": 48
+      },
+      "production_status": "specification-only",
+      "states": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "id": "saga.dual-pivot-chamber.device",
+      "kind": "device",
+      "location_id": "saga.dual-pivot-chamber",
+      "native_size": {
+        "height": 90,
+        "width": 160
+      },
+      "pixel_rules": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "palette_max": 48
+      },
+      "production_status": "specification-only",
+      "states": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    }
+  ],
+  "decision_claims": [
+    {
+      "asserts_unique": true,
+      "decision_id": "well.departure.repair-old-ship",
+      "value": {
+        "natural_companion": "grit",
+        "route_id": "repair-old-ship",
+        "well_shared_down": true
+      }
+    },
+    {
+      "asserts_unique": true,
+      "decision_id": "saga.primary-resolution.rotation-calendar",
+      "value": {
+        "acquisition": "granted",
+        "core_removed": false,
+        "required_calibrations": [
+          "outer-light-clock",
+          "inner-tide-clock",
+          "neutral-free-gyroscope"
+        ],
+        "route_id": "rebuild-rotation-calendar",
+        "witness_category": "gravity-and-direction"
+      }
+    },
+    {
+      "asserts_unique": true,
+      "decision_id": "saga.revisit.first-rotation",
+      "value": {
+        "event_id": "first-rotation",
+        "message": "共存是持续维护，不是静态两全。",
+        "minimum_travel_ticks": 1,
+        "required_action": "neutral-layer-stabilization"
+      }
+    },
+    {
+      "asserts_unique": true,
+      "decision_id": "asset.saga.first-slice-specification-only",
+      "value": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "environment_native_size": [
+          160,
+          90
+        ],
+        "production_status": "specification-only"
+      }
+    }
+  ],
+  "id": "well-saga-first-slice",
+  "journey": {
+    "objective": "以旧船离开井星，在萨迦恢复轮坠历，并在第一次轮坠时返回完成中和层校准。",
+    "revisit": {
+      "entry_requirements": {
+        "minimum_travel_ticks": 1,
+        "required_states": [
+          "well.old_ship_repaired",
+          "saga.rotation_calendar_restored"
+        ]
+      },
+      "event_id": "first-rotation",
+      "location_id": "saga.no-down-city",
+      "required_action": {
+        "id": "neutral-layer-stabilization",
+        "player_operation": "在中和层重连被破坏的历轴，将外昼光钟与内海潮钟的实时读数重新同步。",
+        "result": "第一次翻转按预测完成；损失与事故被记录，但两面都无法把风险外包给对方。"
+      },
+      "system_text": "共存是持续维护，不是静态两全。",
+      "visible_consequences": [
+        "外昼城在翻转前转入临时锚定，工业航路缩短。",
+        "内海穹提前释放部分水体进入缓冲带，居民必须按潮钟迁移。",
+        "无下城承受两面物流与维护人员的集中压力。",
+        "极端派破坏一段历轴，试图证明轮坠历不能成立。"
+      ]
+    },
+    "rotation_calendar": {
+      "required_sequence": [
+        {
+          "id": "outer-light-clock",
+          "location_id": "saga.outer-day-city",
+          "player_operation": "在外昼光钟中重接定向刻度，使外层设施能预报第一次翻转。"
+        },
+        {
+          "id": "inner-tide-clock",
+          "location_id": "saga.inner-sea-dome",
+          "player_operation": "在内海潮钟中校准水体锚链，记录翻转前的撤离窗口。"
+        },
+        {
+          "id": "neutral-free-gyroscope",
+          "location_id": "saga.no-down-city",
+          "player_operation": "在无下城自由陀仪上同步两面周期，建立中和层的共同时间基准。"
+        }
+      ],
+      "resolution": {
+        "state_changes": {
+          "saga.core_removed": false,
+          "saga.rotation_calendar_restored": true,
+          "saga.witness.acquisition": "granted",
+          "saga.witness.category": "gravity-and-direction"
+        },
+        "system_text": "轮坠历恢复。共同下方将按历法轮换；事故风险未归零。",
+        "world_consequences": [
+          "外昼城与内海穹必须重建适应翻转的居住结构。",
+          "无下城成为维护历法与分配撤离窗口的共同节点。",
+          "极端派可能离开、阻挠或破坏历轴。"
+        ]
+      },
+      "route_id": "rebuild-rotation-calendar"
+    },
+    "saga_arrival": {
+      "local_fact": "内外两套文明向相反方向生活；唯一坠核正在偏向一侧。",
+      "location_id": "saga.outer-day-city",
+      "voices": [
+        {
+          "claim": "永久向外定向能保住人口与工业。",
+          "position": "外昼城定向官",
+          "speaker": "岫"
+        },
+        {
+          "claim": "内海无法整体迁移，外面不能把灾害称为必要代价。",
+          "position": "内海穹引水者",
+          "speaker": "反枝"
+        },
+        {
+          "claim": "中间也是一个地方，翻转的代价必须被共同承担。",
+          "position": "无下城摆渡人",
+          "speaker": "央"
+        }
+      ]
+    },
+    "well_departure": {
+      "recorded_consequences": [
+        "井星仍有共同下方。",
+        "砾以维修与航路知识同行。",
+        "旧船修复使用的材料与维修记录保留在船上。"
+      ],
+      "route_id": "repair-old-ship",
+      "system_text": "航行条件恢复。指定目标：无。"
+    }
+  },
+  "schema_version": 1,
+  "starting_state": {
+    "cargo": [
+      "repair-toolkit",
+      "well-navigation-log",
+      "cold-stone-sample"
+    ],
+    "location": "well.repair-bay",
+    "party": [
+      "player",
+      "grit"
+    ],
+    "well": {
+      "collapse_active": false,
+      "core_removed": false,
+      "old_ship_repaired": true,
+      "shared_down": true
+    }
+  },
+  "title": "井星→萨迦：第一轮坠",
+  "version": "v0.1"
+}
