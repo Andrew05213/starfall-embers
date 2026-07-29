@@ -22,6 +22,8 @@ benchmarks, and architecture records for Fallen Stars, Living Matter.
 ## Cross-session continuity
 
 - Before planning or modifying repository state, read `docs/handoff/current.md` when it exists.
+- Use `todo.md` as the dependency-ordered long-term plan and `docs/handoff/current.md` as the
+  dated operational snapshot. Do not put transient branch details into `todo.md`.
 - Treat branch, pull-request, CI, worktree, and local-change details in the handoff as a dated
   snapshot. Reconfirm mutable facts with local Git and GitHub before any write action.
 - Update the handoff in the same scoped change whenever branch relationships, pull-request bases,
