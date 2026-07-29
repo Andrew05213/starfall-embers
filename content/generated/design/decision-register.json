@@ -1,0 +1,152 @@
+{
+  "decisions": [
+    {
+      "acceptance_criteria": [
+        "切片入口记录旧船已修复、井星共同下方仍存在、砾同行。",
+        "运行时清单中不得出现坠核移除或井星崩塌状态。"
+      ],
+      "affected_content": [
+        "well.departure",
+        "well.state",
+        "saga.arrival"
+      ],
+      "canonical_value": {
+        "natural_companion": "grit",
+        "route_id": "repair-old-ship",
+        "well_shared_down": true
+      },
+      "change_reason": "为首发内容切片提供稳定开场，并避免引入尚未实现的崩塌、救援与留守系统。",
+      "constraints": [
+        "井星四条离星路线继续存在于总设定；本切片只实现修复旧船。",
+        "修复旧船不得取走井星坠核，也不得触发拔核崩塌或扩大救援容量。"
+      ],
+      "id": "well.departure.repair-old-ship",
+      "source_refs": [
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/00_阅读说明与冻结基线.md",
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/01_世界观与整体主线.md"
+      ],
+      "status": "frozen",
+      "title": "首发切片以修复旧船离开井星",
+      "version": "v0.1"
+    },
+    {
+      "acceptance_criteria": [
+        "三项校准缺任一项时，轮坠历恢复节点不可完成。",
+        "结果写入受授的重力与方向见证，且萨迦坠核保留。"
+      ],
+      "affected_content": [
+        "saga.main-route",
+        "saga.witness",
+        "saga.revisit"
+      ],
+      "canonical_value": {
+        "acquisition": "granted",
+        "core_removed": false,
+        "required_calibrations": [
+          "outer-light-clock",
+          "inner-tide-clock",
+          "neutral-free-gyroscope"
+        ],
+        "route_id": "rebuild-rotation-calendar",
+        "witness_category": "gravity-and-direction"
+      },
+      "change_reason": "用可预测的双向坠律验证局部重力玩法，并把共存表现为持续维护。",
+      "constraints": [
+        "轮坠历要求三项校准全部完成后才能恢复。",
+        "本切片不能把萨迦坠核或法则见证写成同一物件。",
+        "恢复轮坠历不等于消除翻转事故或阵营冲突。"
+      ],
+      "id": "saga.primary-resolution.rotation-calendar",
+      "source_refs": [
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/02_星球篇章设计.md"
+      ],
+      "status": "frozen",
+      "title": "萨迦首发切片固定为重建轮坠历",
+      "version": "v0.1"
+    },
+    {
+      "acceptance_criteria": [
+        "回访前置条件包含轮坠历已恢复和至少一次航行推进。",
+        "回访目标为中和层校准，结论保留翻转风险与维护代价。"
+      ],
+      "affected_content": [
+        "saga.revisit",
+        "saga.world-state",
+        "asset.saga.variants"
+      ],
+      "canonical_value": {
+        "event_id": "first-rotation",
+        "message": "共存是持续维护，不是静态两全。",
+        "minimum_travel_ticks": 1,
+        "required_action": "neutral-layer-stabilization"
+      },
+      "change_reason": "证明主星选择会持续改变可探索世界，而非仅切换结算文本。",
+      "constraints": [
+        "回访必须发生在离开萨迦并完成至少一次航行推进之后。",
+        "回访展示外昼城、内海穹与无下城的不同适应压力，不新增第二个终局选择。"
+      ],
+      "id": "saga.revisit.first-rotation",
+      "source_refs": [
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/02_星球篇章设计.md",
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/04_动态叙事与任务编排.md"
+      ],
+      "status": "frozen",
+      "title": "萨迦回访展示第一次轮坠",
+      "version": "v0.1"
+    },
+    {
+      "acceptance_criteria": [
+        "五个萨迦区域均有轮坠前、中、后状态说明。",
+        "所有资产条目状态为specification-only，且不引用未验收地质背景。"
+      ],
+      "affected_content": [
+        "asset.saga",
+        "asset.validation"
+      ],
+      "canonical_value": {
+        "alpha": "binary-hard-edge",
+        "character_scale_px": 20,
+        "environment_native_size": [
+          160,
+          90
+        ],
+        "production_status": "specification-only"
+      },
+      "change_reason": "在不扩大二进制资产与Git LFS风险的前提下，为后续像素生产提供可验收规格。",
+      "constraints": [
+        "本切片不新增 PNG，也不把当前地质背景候选接入正式场景。",
+        "环境规格必须使用160×90原生单元、20像素人物标尺、硬边二值Alpha和不超过48色的环境色板。"
+      ],
+      "id": "asset.saga.first-slice-specification-only",
+      "source_refs": [
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/设定集/井星_星际单元设定集_V0.3/README.md",
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/地质背景/素材清单与验收状态.md"
+      ],
+      "status": "frozen",
+      "title": "萨迦首发素材只交付占位规格",
+      "version": "v0.1"
+    },
+    {
+      "acceptance_criteria": [
+        "切片内容不声明任何官方真结局。"
+      ],
+      "affected_content": [
+        "furnace.endings",
+        "saga.scope"
+      ],
+      "canonical_value": null,
+      "change_reason": "保留总设定的终局开放性，不让垂直切片替代全局裁决。",
+      "constraints": [
+        "首发切片不得把任一终局写成唯一正史或唯一正确路线。"
+      ],
+      "id": "furnace.final-endings",
+      "source_refs": [
+        "project_reference/坠星余烬_当前设定与素材_2026-07-26/文档/01_世界观与整体主线.md"
+      ],
+      "status": "variable",
+      "title": "六种终局继续保持开放",
+      "version": "v0.6"
+    }
+  ],
+  "schema_version": 1
+}
