@@ -22,6 +22,10 @@ void SimulationHost::submit_projectile_commands(ProjectileCommandBatch commands)
     );
 }
 
+void SimulationHost::submit_collision_world(CollisionWorldSnapshot snapshot) {
+    ballistics_.set_collision_world(std::move(snapshot));
+}
+
 void SimulationHost::step() {
     ballistics_.submit(std::move(pending_projectile_commands_));
     pending_projectile_commands_ = {};

@@ -12,6 +12,7 @@ project(
 
 option(STARFALL_BUILD_TESTS "Build native smoke and unit tests" ON)
 option(STARFALL_BUILD_GODOT_BRIDGE "Build the Godot GDExtension bridge" OFF)
+option(STARFALL_BUILD_BENCHMARKS "Build native performance benchmarks" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,3 +41,6 @@ if(STARFALL_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
+if(STARFALL_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
+endif()

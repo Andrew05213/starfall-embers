@@ -32,6 +32,7 @@ ProjectileCommandBatch spawn_batch(std::uint64_t request_id, double x) {
 void test_default_gate1_configuration() {
     SimulationHost host;
     assert(host.config().ticks_per_second == 30);
+    assert(host.config().random_seed == 0x51a7e11ULL);
     assert(near(host.config().primary_gravity.center.x, 320.0));
     assert(near(host.config().primary_gravity.center.y, 10'020.0));
     assert(near(host.config().primary_gravity.surface_radius, 10'000.0));

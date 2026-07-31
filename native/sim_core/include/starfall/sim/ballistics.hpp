@@ -66,6 +66,35 @@ struct SpawnProjectileCommand final {
     Vec2 velocity{};
     double lifetime_seconds = Gate1BallisticBaseline::projectile_lifetime;
     double gravity_scale = Gate1BallisticBaseline::projectile_gravity_scale;
+    double collision_radius = 1.5;
+};
+
+enum class CollisionShape : std::uint8_t {
+    circle,
+    axis_aligned_box,
+};
+
+struct CollisionProxy final {
+    std::uint64_t collider_id = 0;
+    CollisionShape shape = CollisionShape::circle;
+    Vec2 center{};
+    /// Circle proxies use x as radius. Boxes use x/y as half extents.
+    Vec2 half_extents{};
+};
+
+struct TerrainCollisionGrid final {
+    Vec2 origin{};
+    double cell_size = 1.0;
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::vector<std::uint8_t> cells;
+};
+
+/// One fixed-step collision snapshot. Godot submits it as a coarse batch;
+/// sim_core never calls back into the scene tree or reads individual pixels.
+struct CollisionWorldSnapshot final {
+    std::vector<CollisionProxy> colliders;
+    TerrainCollisionGrid terrain;
 };
 
 enum class RetireReason : std::uint8_t {
@@ -93,6 +122,7 @@ struct ProjectileState final {
     double age_seconds = 0.0;
     double lifetime_seconds = 0.0;
     double gravity_scale = 0.0;
+    double collision_radius = 0.0;
 };
 
 struct ProjectileStateBatch final {
@@ -106,6 +136,8 @@ enum class ProjectileEventKind : std::uint8_t {
     retired_on_impact,
     retired_external,
     rejected,
+    hit_entity,
+    hit_terrain,
 };
 
 struct ProjectileEvent final {
@@ -113,6 +145,7 @@ struct ProjectileEvent final {
     ProjectileId projectile_id = 0;
     std::uint64_t request_id = 0;
     std::uint64_t tick = 0;
+    std::uint64_t collider_id = 0;
     Vec2 position{};
     Vec2 velocity{};
 };
@@ -133,6 +166,7 @@ public:
     /// moved in so bridge code can transfer many commands with one boundary
     /// crossing. Submitting another non-empty batch before step() is an error.
     void submit(ProjectileCommandBatch commands);
+    void set_collision_world(CollisionWorldSnapshot snapshot);
     void step();
 
     [[nodiscard]] std::uint32_t ticks_per_second() const noexcept;
@@ -154,6 +188,7 @@ private:
     ProjectileId next_projectile_id_ = 1;
     PrimaryGravity gravity_{};
     ProjectileCommandBatch pending_commands_{};
+    CollisionWorldSnapshot collision_world_{};
     std::vector<ProjectileState> active_projectiles_{};
     ProjectileStateBatch state_batch_{};
     ProjectileEventBatch event_batch_{};

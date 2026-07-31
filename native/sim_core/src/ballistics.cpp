@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -10,6 +11,9 @@ namespace starfall::sim {
 namespace {
 
 constexpr double distance_epsilon = 1.0e-9;
+constexpr double hit_epsilon = 1.0e-6;
+constexpr double terrain_sample_step = 0.8;
+constexpr std::uint8_t material_mask = 0x0f;
 
 [[nodiscard]] bool is_finite(Vec2 value) noexcept {
     return std::isfinite(value.x) && std::isfinite(value.y);
@@ -21,7 +25,206 @@ constexpr double distance_epsilon = 1.0e-9;
         && std::isfinite(command.lifetime_seconds)
         && command.lifetime_seconds > 0.0
         && std::isfinite(command.gravity_scale)
-        && command.gravity_scale >= 0.0;
+        && command.gravity_scale >= 0.0
+        && std::isfinite(command.collision_radius)
+        && command.collision_radius >= 0.0;
+}
+
+struct CollisionHit final {
+    double fraction = std::numeric_limits<double>::infinity();
+    std::uint64_t collider_id = 0;
+    bool terrain = false;
+};
+
+[[nodiscard]] std::optional<double> sweep_circle(
+    Vec2 from,
+    Vec2 to,
+    Vec2 center,
+    double radius
+) noexcept {
+    const Vec2 direction = to - from;
+    const Vec2 offset = from - center;
+    const double a = direction.x * direction.x + direction.y * direction.y;
+    const double c = offset.x * offset.x + offset.y * offset.y - radius * radius;
+    if (c <= 0.0) {
+        return 0.0;
+    }
+    if (a <= distance_epsilon * distance_epsilon) {
+        return std::nullopt;
+    }
+    const double b = 2.0 * (offset.x * direction.x + offset.y * direction.y);
+    const double discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) {
+        return std::nullopt;
+    }
+    const double fraction = (-b - std::sqrt(discriminant)) / (2.0 * a);
+    if (fraction < 0.0 || fraction > 1.0) {
+        return std::nullopt;
+    }
+    return fraction;
+}
+
+[[nodiscard]] std::optional<double> sweep_box(
+    Vec2 from,
+    Vec2 to,
+    Vec2 center,
+    Vec2 half_extents,
+    double projectile_radius
+) noexcept {
+    const Vec2 minimum{
+        center.x - half_extents.x - projectile_radius,
+        center.y - half_extents.y - projectile_radius,
+    };
+    const Vec2 maximum{
+        center.x + half_extents.x + projectile_radius,
+        center.y + half_extents.y + projectile_radius,
+    };
+    const Vec2 direction = to - from;
+    double minimum_fraction = 0.0;
+    double maximum_fraction = 1.0;
+    for (int axis = 0; axis < 2; ++axis) {
+        const double start = axis == 0 ? from.x : from.y;
+        const double delta = axis == 0 ? direction.x : direction.y;
+        const double axis_minimum = axis == 0 ? minimum.x : minimum.y;
+        const double axis_maximum = axis == 0 ? maximum.x : maximum.y;
+        if (std::abs(delta) <= hit_epsilon) {
+            if (start < axis_minimum || start > axis_maximum) {
+                return std::nullopt;
+            }
+            continue;
+        }
+        double first = (axis_minimum - start) / delta;
+        double second = (axis_maximum - start) / delta;
+        if (first > second) {
+            std::swap(first, second);
+        }
+        minimum_fraction = std::max(minimum_fraction, first);
+        maximum_fraction = std::min(maximum_fraction, second);
+        if (minimum_fraction > maximum_fraction) {
+            return std::nullopt;
+        }
+    }
+    if (maximum_fraction < 0.0 || minimum_fraction > 1.0) {
+        return std::nullopt;
+    }
+    return std::clamp(minimum_fraction, 0.0, 1.0);
+}
+
+[[nodiscard]] bool terrain_is_solid(
+    const TerrainCollisionGrid& terrain,
+    Vec2 point
+) noexcept {
+    if (terrain.width == 0 || terrain.height == 0 || terrain.cell_size <= 0.0) {
+        return false;
+    }
+    const auto x = static_cast<std::int64_t>(
+        std::floor((point.x - terrain.origin.x) / terrain.cell_size)
+    );
+    const auto y = static_cast<std::int64_t>(
+        std::floor((point.y - terrain.origin.y) / terrain.cell_size)
+    );
+    if (x < 0 || y < 0
+        || x >= static_cast<std::int64_t>(terrain.width)
+        || y >= static_cast<std::int64_t>(terrain.height)) {
+        return false;
+    }
+    const auto index = static_cast<std::size_t>(y) * terrain.width
+        + static_cast<std::size_t>(x);
+    if (index >= terrain.cells.size()) {
+        return false;
+    }
+    const auto material = terrain.cells[index] & material_mask;
+    return material == 1 || material == 2 || material == 9;
+}
+
+[[nodiscard]] double sweep_terrain(
+    Vec2 from,
+    Vec2 to,
+    double radius,
+    const TerrainCollisionGrid& terrain
+) noexcept {
+    const Vec2 delta = to - from;
+    const double distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+    const auto step_count = std::max<std::uint64_t>(
+        1,
+        static_cast<std::uint64_t>(std::ceil(distance / terrain_sample_step))
+    );
+    const Vec2 offsets[] = {
+        {},
+        {radius, 0.0},
+        {-radius, 0.0},
+        {0.0, radius},
+        {0.0, -radius},
+    };
+    for (std::uint64_t step = 1; step <= step_count; ++step) {
+        const double fraction = static_cast<double>(step) / static_cast<double>(step_count);
+        const Vec2 center = from + delta * fraction;
+        for (const auto offset : offsets) {
+            if (terrain_is_solid(terrain, center + offset)) {
+                return fraction;
+            }
+        }
+    }
+    return std::numeric_limits<double>::infinity();
+}
+
+[[nodiscard]] CollisionHit find_earliest_hit(
+    Vec2 from,
+    Vec2 to,
+    double projectile_radius,
+    const CollisionWorldSnapshot& world
+) noexcept {
+    CollisionHit best;
+    for (const auto& collider : world.colliders) {
+        if (collider.collider_id == 0 || !is_finite(collider.center)
+            || !is_finite(collider.half_extents)) {
+            continue;
+        }
+        std::optional<double> fraction;
+        if (collider.shape == CollisionShape::circle && collider.half_extents.x >= 0.0) {
+            fraction = sweep_circle(
+                from,
+                to,
+                collider.center,
+                collider.half_extents.x + projectile_radius
+            );
+        } else if (collider.shape == CollisionShape::axis_aligned_box
+            && collider.half_extents.x >= 0.0 && collider.half_extents.y >= 0.0) {
+            fraction = sweep_box(
+                from,
+                to,
+                collider.center,
+                collider.half_extents,
+                projectile_radius
+            );
+        }
+        if (!fraction.has_value()) {
+            continue;
+        }
+        if (*fraction < best.fraction - hit_epsilon
+            || (std::abs(*fraction - best.fraction) <= hit_epsilon
+                && collider.collider_id < best.collider_id)) {
+            best = {
+                .fraction = *fraction,
+                .collider_id = collider.collider_id,
+                .terrain = false,
+            };
+        }
+    }
+    const double terrain_fraction = sweep_terrain(
+        from,
+        to,
+        projectile_radius,
+        world.terrain
+    );
+    if (terrain_fraction < best.fraction - hit_epsilon) {
+        best = {
+            .fraction = terrain_fraction,
+            .collider_id = 0,
+            .terrain = true,
+        };
+    }
+    return best;
 }
 
 } // namespace
@@ -81,6 +284,10 @@ void BallisticSystem::submit(ProjectileCommandBatch commands) {
         throw std::logic_error("a projectile command batch is already pending");
     }
     pending_commands_ = std::move(commands);
+}
+
+void BallisticSystem::set_collision_world(CollisionWorldSnapshot snapshot) {
+    collision_world_ = std::move(snapshot);
 }
 
 void BallisticSystem::step() {
@@ -167,6 +374,7 @@ void BallisticSystem::process_spawns() {
             .age_seconds = 0.0,
             .lifetime_seconds = command.lifetime_seconds,
             .gravity_scale = command.gravity_scale,
+            .collision_radius = command.collision_radius,
         });
         event_batch_.events.push_back({
             .kind = ProjectileEventKind::spawned,
@@ -186,10 +394,37 @@ void BallisticSystem::integrate_projectiles() {
         const double step_time = std::min(fixed_step_seconds_, std::max(remaining_lifetime, 0.0));
         projectile->previous_position = projectile->position;
         if (step_time > 0.0) {
+            const Vec2 from = projectile->position;
             const Vec2 acceleration = gravity_.acceleration_at(projectile->position)
                 * projectile->gravity_scale;
-            projectile->position += projectile->velocity * step_time
+            const Vec2 to = projectile->position + projectile->velocity * step_time
                 + acceleration * (0.5 * step_time * step_time);
+            const auto hit = find_earliest_hit(
+                from,
+                to,
+                projectile->collision_radius,
+                collision_world_
+            );
+            if (std::isfinite(hit.fraction)) {
+                const double fraction = std::clamp(hit.fraction, 0.0, 1.0);
+                projectile->position = from + (to - from) * fraction;
+                projectile->velocity += acceleration * (step_time * fraction);
+                projectile->age_seconds += step_time * fraction;
+                event_batch_.events.push_back({
+                    .kind = hit.terrain
+                        ? ProjectileEventKind::hit_terrain
+                        : ProjectileEventKind::hit_entity,
+                    .projectile_id = projectile->projectile_id,
+                    .request_id = projectile->request_id,
+                    .tick = tick_,
+                    .collider_id = hit.collider_id,
+                    .position = projectile->position,
+                    .velocity = projectile->velocity,
+                });
+                projectile = active_projectiles_.erase(projectile);
+                continue;
+            }
+            projectile->position = to;
             projectile->velocity += acceleration * step_time;
             projectile->age_seconds += step_time;
         }

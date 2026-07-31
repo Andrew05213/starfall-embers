@@ -151,6 +151,18 @@ func is_solid_at(world_pos: Vector2) -> bool:
 	)
 
 
+func get_native_collision_grid() -> Dictionary:
+	## A single coarse snapshot for one native fixed step. The combat lab keeps
+	## this grid unrotated, so origin plus cell size fully describes its transform.
+	return {
+		"cells": cells,
+		"width": GRID_WIDTH,
+		"height": GRID_HEIGHT,
+		"origin": global_position,
+		"cell_size": float(CELL_SIZE),
+	}
+
+
 func get_material_at(world_pos: Vector2) -> int:
 	var cell := _local_to_cell(to_local(world_pos))
 	if not _is_in_bounds(cell.x, cell.y):

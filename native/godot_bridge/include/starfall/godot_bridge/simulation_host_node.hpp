@@ -4,6 +4,7 @@
 
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_int64_array.hpp>
@@ -28,7 +29,8 @@ public:
         godot::Vector2 center,
         double surface_radius,
         double surface_acceleration,
-        std::int64_t ticks_per_second
+        std::int64_t ticks_per_second,
+        std::int64_t random_seed
     );
 
     bool submit_projectile_spawns(
@@ -36,7 +38,19 @@ public:
         const godot::PackedVector2Array& positions,
         const godot::PackedVector2Array& velocities,
         const godot::PackedFloat64Array& lifetimes,
-        const godot::PackedFloat64Array& gravity_scales
+        const godot::PackedFloat64Array& gravity_scales,
+        const godot::PackedFloat64Array& collision_radii
+    );
+    bool submit_collision_world(
+        const godot::PackedInt64Array& collider_ids,
+        const godot::PackedInt32Array& shape_kinds,
+        const godot::PackedVector2Array& centers,
+        const godot::PackedVector2Array& half_extents,
+        const godot::PackedByteArray& terrain_cells,
+        std::int64_t terrain_width,
+        std::int64_t terrain_height,
+        godot::Vector2 terrain_origin,
+        double terrain_cell_size
     );
     bool submit_projectile_retires(
         const godot::PackedInt64Array& projectile_ids,
@@ -46,6 +60,7 @@ public:
 
     [[nodiscard]] std::int64_t get_tick() const noexcept;
     [[nodiscard]] double get_fixed_step_seconds() const noexcept;
+    [[nodiscard]] std::int64_t get_random_seed() const noexcept;
     [[nodiscard]] godot::Dictionary get_projectile_state_batch() const;
     /// Returns all events since the previous drain and consumes that queue.
     [[nodiscard]] godot::Dictionary drain_projectile_event_batch();

@@ -75,6 +75,45 @@ func _physics_process(delta: float) -> void:
 	simulate_step(delta)
 
 
+func configure_native_presentation() -> void:
+	## Native authoritative mode owns advancement and collision. This node keeps
+	## only the interpolated visual and emits presentation-side signals.
+	set_physics_process(false)
+
+
+func apply_native_state(
+	previous_position: Vector2,
+	current_position: Vector2,
+	current_velocity: Vector2,
+	current_age: float
+) -> void:
+	if _expired:
+		return
+	_previous_visual_physics_position = previous_position
+	_current_visual_physics_position = current_position
+	global_position = current_position
+	velocity = current_velocity
+	_age = current_age
+	traveled.emit(previous_position, current_position, current_velocity)
+	queue_redraw()
+
+
+func apply_native_hit(target: Node, point: Vector2, impact_velocity: Vector2) -> void:
+	if _expired:
+		return
+	var from := global_position
+	_previous_visual_physics_position = from
+	_current_visual_physics_position = point
+	global_position = point
+	velocity = impact_velocity
+	traveled.emit(from, point, impact_velocity)
+	_apply_hit({"target": target, "point": point})
+
+
+func apply_native_expire(reason: String) -> void:
+	_expire(reason)
+
+
 func simulate_step(delta: float) -> void:
 	if _expired or not is_instance_valid(_profile):
 		return

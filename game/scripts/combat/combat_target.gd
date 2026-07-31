@@ -122,6 +122,17 @@ func get_hit_pause_remaining() -> float:
 	return _hit_pause_left
 
 
+func get_native_collision_proxy() -> Dictionary:
+	if _dead:
+		return {}
+	return {
+		"collider_id": get_instance_id(),
+		"shape_kind": 1 if target_kind == "wall" else 0,
+		"center": global_position,
+		"half_extents": wall_half_size if target_kind == "wall" else Vector2.ONE * collision_radius,
+	}
+
+
 func _sweep_expanded_rect(from: Vector2, to: Vector2, radius: float) -> Dictionary:
 	var minimum := global_position - wall_half_size - Vector2.ONE * radius
 	var maximum := global_position + wall_half_size + Vector2.ONE * radius

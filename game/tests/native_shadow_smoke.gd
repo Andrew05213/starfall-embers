@@ -29,14 +29,16 @@ func _run() -> void:
 		material_world.primary_gravity_center,
 		material_world.primary_surface_radius,
 		material_world.primary_gravity_acceleration,
-		30
+		30,
+		0x51A7E11
 	))
 	assert(native_host.submit_projectile_spawns(
 		PackedInt64Array([1]),
 		PackedVector2Array([origin]),
 		PackedVector2Array([Vector2.RIGHT * PROFILE.projectile_speed]),
 		PackedFloat64Array([PROFILE.projectile_lifetime]),
-		PackedFloat64Array([PROFILE.projectile_gravity_scale])
+		PackedFloat64Array([PROFILE.projectile_gravity_scale]),
+		PackedFloat64Array([PROFILE.collision_radius])
 	))
 
 	# The accepted GDScript projectile runs at 60 Hz; the native authority runs

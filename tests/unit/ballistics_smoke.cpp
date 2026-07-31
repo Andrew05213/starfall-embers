@@ -10,6 +10,9 @@ namespace {
 
 using starfall::sim::BallisticSystem;
 using starfall::sim::Gate1BallisticBaseline;
+using starfall::sim::CollisionProxy;
+using starfall::sim::CollisionShape;
+using starfall::sim::CollisionWorldSnapshot;
 using starfall::sim::PrimaryGravity;
 using starfall::sim::ProjectileCommandBatch;
 using starfall::sim::ProjectileEventKind;
@@ -238,6 +241,83 @@ void test_impact_retirement_batch() {
     assert(system.events().events.front().request_id == 314);
 }
 
+BallisticSystem flat_ballistics() {
+    return BallisticSystem(30, PrimaryGravity{
+        .center = {0.0, 1'000.0},
+        .surface_radius = 1'000.0,
+        .surface_acceleration = 0.0,
+    });
+}
+
+ProjectileCommandBatch flat_shot(std::uint64_t request_id = 1) {
+    ProjectileCommandBatch commands;
+    commands.spawns.push_back({
+        .request_id = request_id,
+        .position = {0.0, 0.0},
+        .velocity = {300.0, 0.0},
+        .lifetime_seconds = 1.0,
+        .gravity_scale = 0.0,
+        .collision_radius = 1.0,
+    });
+    return commands;
+}
+
+void test_native_entity_hit_is_authoritative_and_stable() {
+    auto system = flat_ballistics();
+    CollisionWorldSnapshot world;
+    // Deliberately submit the larger ID first. Equal-time hits choose the
+    // stable lower collider ID, independent of scene/group iteration order.
+    world.colliders.push_back(CollisionProxy{
+        .collider_id = 22,
+        .shape = CollisionShape::circle,
+        .center = {5.0, 0.0},
+        .half_extents = {1.0, 1.0},
+    });
+    world.colliders.push_back(CollisionProxy{
+        .collider_id = 11,
+        .shape = CollisionShape::circle,
+        .center = {5.0, 0.0},
+        .half_extents = {1.0, 1.0},
+    });
+    system.set_collision_world(std::move(world));
+    system.submit(flat_shot(401));
+    system.step();
+
+    assert(system.states().projectiles.empty());
+    assert(system.events().events.size() == 2);
+    assert(system.events().events[0].kind == ProjectileEventKind::spawned);
+    const auto& hit = system.events().events[1];
+    assert(hit.kind == ProjectileEventKind::hit_entity);
+    assert(hit.request_id == 401);
+    assert(hit.collider_id == 11);
+    assert(near(hit.position.x, 3.0));
+}
+
+void test_native_terrain_grid_hit_precedes_lifetime() {
+    auto system = flat_ballistics();
+    CollisionWorldSnapshot world;
+    world.terrain = {
+        .origin = {0.0, 0.0},
+        .cell_size = 1.0,
+        .width = 4,
+        .height = 1,
+        .cells = {0, 0, 1, 0},
+    };
+    system.set_collision_world(std::move(world));
+    auto commands = flat_shot(402);
+    commands.spawns.front().collision_radius = 0.0;
+    system.submit(std::move(commands));
+    system.step();
+
+    assert(system.states().projectiles.empty());
+    assert(system.events().events.size() == 2);
+    const auto& hit = system.events().events[1];
+    assert(hit.kind == ProjectileEventKind::hit_terrain);
+    assert(hit.request_id == 402);
+    assert(hit.collider_id == 0);
+    assert(hit.position.x >= 2.0 && hit.position.x < 3.0);
+}
+
 } // namespace
 
 int main() {
@@ -250,5 +330,7 @@ int main() {
     test_large_spawn_batch_keeps_submission_order();
     test_invalid_spawn_is_rejected();
     test_impact_retirement_batch();
+    test_native_entity_hit_is_authoritative_and_stable();
+    test_native_terrain_grid_hit_precedes_lifetime();
     return 0;
 }

@@ -90,17 +90,30 @@ func _refresh_label() -> void:
 	if not is_instance_valid(_status_label):
 		return
 	var latency := "--" if _first_shot_latency_ms < 0.0 else "%.1f ms" % _first_shot_latency_ms
-	var shadow_line := "C++ 影子：未加载"
+	var shadow_line := "弹道：GDScript 回退（Native 未加载）"
 	if bool(_native_shadow_snapshot.get("enabled", false)):
-		shadow_line = (
-			"C++ 影子：%d 样本   最大漂移 %.3f px / %.3f px·s⁻¹   异常 %d"
-			% [
-				int(_native_shadow_snapshot.get("compared_samples", 0)),
-				float(_native_shadow_snapshot.get("max_position_error_px", 0.0)),
-				float(_native_shadow_snapshot.get("max_velocity_error_px_per_second", 0.0)),
-				int(_native_shadow_snapshot.get("mismatches", 0)),
-			]
-		)
+		var mode := str(_native_shadow_snapshot.get("mode", "gdscript_fallback"))
+		if mode == "native_shadow":
+			shadow_line = (
+				"弹道：Native 影子   %d 样本   最大漂移 %.3f px / %.3f px·s⁻¹   异常 %d"
+				% [
+					int(_native_shadow_snapshot.get("compared_samples", 0)),
+					float(_native_shadow_snapshot.get("max_position_error_px", 0.0)),
+					float(_native_shadow_snapshot.get("max_velocity_error_px_per_second", 0.0)),
+					int(_native_shadow_snapshot.get("mismatches", 0)),
+				]
+			)
+		elif mode == "native_authoritative":
+			shadow_line = (
+				"弹道：Native 权威   实体命中 %d   地形命中 %d   异常 %d"
+				% [
+					int(_native_shadow_snapshot.get("native_entity_hits", 0)),
+					int(_native_shadow_snapshot.get("native_terrain_hits", 0)),
+					int(_native_shadow_snapshot.get("mismatches", 0)),
+				]
+			)
+		else:
+			shadow_line = "弹道：GDScript 回退"
 	var combat_line := (
 		"射击：%d   命中：%d   击杀：%d   命中率：%d%%"
 		% [

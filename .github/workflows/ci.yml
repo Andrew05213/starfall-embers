@@ -202,3 +202,8 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_shadow_smoke.gd
+
+      - name: Verify native authority modes and collision ownership
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/native_modes_smoke.gd

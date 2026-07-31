@@ -9,6 +9,7 @@ namespace starfall::sim {
 
 struct SimulationHostConfig final {
     std::uint32_t ticks_per_second = Gate1BallisticBaseline::ticks_per_second;
+    std::uint64_t random_seed = 0x51a7e11ULL;
     PrimaryGravity primary_gravity = Gate1BallisticBaseline::gravity();
 };
 
@@ -22,6 +23,7 @@ public:
     explicit SimulationHost(SimulationHostConfig config = {});
 
     void submit_projectile_commands(ProjectileCommandBatch commands);
+    void submit_collision_world(CollisionWorldSnapshot snapshot);
     void step();
 
     [[nodiscard]] const SimulationHostConfig& config() const noexcept;

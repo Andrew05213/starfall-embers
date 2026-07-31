@@ -160,6 +160,7 @@ cmake --build build/godot-bridge --target starfall_godot_bridge
 godot --headless --path game --editor --quit
 godot --headless --path game --script res://tests/native_bridge_smoke.gd
 godot --headless --path game --script res://tests/native_shadow_smoke.gd
+godot --headless --path game --script res://tests/native_modes_smoke.gd
 ```
 
 ### 打开 Godot 工程
@@ -178,7 +179,7 @@ godot --headless --path game --script res://tests/combat_core_smoke.gd
 godot --headless --path game --script res://tests/combat_lab_smoke.gd
 ```
 
-当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。GDExtension 已可加载并通过独立冒烟测试，Combat Lab 也会把真实射击批量送入 C++ 做影子对比；两个可玩场景仍使用临时 GDScript 权威模拟器，在原生碰撞代理和持续回归通过前不会直接切换权威实现。
+当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。Combat Lab 默认请求 `native_authoritative`：C++ 以 30 Hz 固定步决定幼种推进、寿命、目标/地形命中和事件顺序，Godot 只批量提交碰撞快照并消费状态与事件。`native_shadow` 保留差分诊断，`gdscript_fallback` 保留独立可运行的已验收路径；未构建 GDExtension 时自动回退，不产生双重伤害或反馈。
 
 战斗实验场操作：
 

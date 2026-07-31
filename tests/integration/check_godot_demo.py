@@ -108,6 +108,8 @@ contracts = {
     ),
     GAME / "scripts" / "combat" / "native_ballistics_shadow.gd": (
         "configure",
+        "set_mode",
+        "get_mode",
         "track_projectile",
         "get_snapshot",
     ),
@@ -127,10 +129,15 @@ shadow_source = require_text(GAME / "scripts" / "combat" / "native_ballistics_sh
 for native_api in (
     "StarfallSimulationHost",
     "submit_projectile_spawns",
+    "submit_collision_world",
     "get_projectile_state_batch",
 ):
     if native_api not in shadow_source:
         fail(f"production native shadow lacks {native_api} bridge usage")
+
+for mode in ("gdscript_fallback", "native_shadow", "native_authoritative"):
+    if mode not in shadow_source:
+        fail(f"production native runtime lacks explicit {mode} mode")
 
 main_source = require_text(GAME / "scripts" / "main.gd")
 for action in ("move_left", "move_right", "jump", "fire_starseed"):
