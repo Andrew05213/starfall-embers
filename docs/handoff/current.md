@@ -21,7 +21,7 @@
 
 ## 2. GitHub 与分支关系
 
-- `main` 的已知远端 head 为 `267b18b`。
+- `main` 的已知远端 head 为 `401d65e`。
 - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
   为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
 - [PR #5](https://github.com/Andrew05213/starfall-embers/pull/5) 已变基并改指 `main`，确认保持
@@ -37,9 +37,8 @@
   head 为 `b4ec6ab`，其 GitHub 基线仍停在旧 `main` `2b82c72`。不得直接合并；应从当前
   `main` 新建移植分支，定向移植区块存储、批命令、脏区、checksum、测试和 benchmark，
   并手工适配 PR #4 已合并的 ballistics 与 `SimulationHost`。
-- [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 是本次纯文档状态维护 Draft，
-  head 分支为 `codex/update-status-after-pr4`，base 为 `main`。范围只允许包含 `AGENTS.md`、
-  `todo.md` 和 `docs/handoff/current.md`。
+- [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 已在 8/8 checks 全绿后合并，
+  merge commit 为 `401d65e`；`AGENTS.md`、`todo.md` 与本交接已进入 `main`。
 
 ## 3. 本机 worktree
 
@@ -60,6 +59,9 @@
 - `C:\tmp\starfall-status-after-pr4-20260802`
   - `codex/update-status-after-pr4`，从合并 PR #4 后的 `main` `267b18b` 建立；只用于本次
     `AGENTS.md`、`todo.md` 与交接快照维护。
+- `C:\tmp\starfall-native-chunk-p2-20260802`
+  - `codex/native-chunk-p2`，从合并 PR #8 后的 `main` `401d65e` 建立；只用于定向移植
+    PR #3 的原生区块基础并完成 P0.3/P2 验收。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
@@ -124,19 +126,42 @@
 
 ## 8. 后续顺序
 
-1. 审查并合并纯文档状态维护 PR #8；它不得夹带受保护 worktree 的任何文件。
-2. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
+1. 在 `codex/native-chunk-p2` 中定向移植 PR #3 的区块存储、批命令、脏区、checksum、
+   测试和 benchmark，手工适配已合并的 ballistics 与 `SimulationHost`；不得 cherry-pick
+   整个旧提交。
+2. 完成 64×64 区块、版本化 DTO、Godot 批传输、确定性重放和 1024² benchmark 验收，
+   发布替代 PR 后关闭或标记 PR #3 被取代。
+3. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
    变基，验证后再决定 Ready 与合并。
-3. 从最新 `main` 建立 P0.3 原生区块移植分支；不得直接合并 PR #3。
 4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
 5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
 
 - PR #4 已完成 Ready、合并与远端 `main` 复核；merge commit 为 `267b18b`。
-- 本次状态维护只修改 `AGENTS.md`、`todo.md` 和 `docs/handoff/current.md`，已通过独立分支
-  `codex/update-status-after-pr4` 发布为 Draft PR #8。
+- PR #8 已合并并把状态维护带入 `main`；P0.3/P2 分支已从该合并提交建立，但尚未完成代码
+  移植或验收，因此 `todo.md` 中对应复选框保持未勾选。
 - 主要工作区与萨迦 worktree 的受保护改动保持原状；本轮没有归一化、暂存或删除其中素材。
 - 普通沙箱内 `git status` 仍可能因共享 `.git\lfs\tmp` 的安全 ACL 失败；这不是素材损坏证据。
+
+## 10. P0.3/P2 本地实现快照
+
+- `codex/native-chunk-p2` 已定向移植旧 PR #3 的连续单字节 row-major 存储、批命令、稳定
+  脏区、snapshot/checksum、单元测试与 benchmark；没有 cherry-pick 旧提交，也没有建立第二套
+  原生宿主。
+- `SimulationHost` 现同时承载 ballistics 与材质 `World`，在相同固定 tick 消费两类命令；
+  GDExtension 通过 DTO v1 PackedArray 整批提交材质命令，并整批返回结果和拼接后的脏区 bytes。
+- `NativeMaterialChunkView` 一次消费整个 dirty DTO，在 Godot 本地展开 cells 并更新
+  `ImageTexture`；没有增加逐像素 GDExtension 调用。
+- 区块协议固定为 64×64，材质 ID 固定为 `0..9`；未知 DTO 版本、非法材质或数组结构在写入前
+  整批拒绝。ADR-0004 明确这一阶段不切换 GDScript 材质玩法权威，也不冻结存档格式。
+- 本地 VS18 Debug CTest 3/3 通过，其中包含独立朴素随机参考模型；Debug GDExtension 构建、
+  Godot 4.7.1 headless import、与 CI 对齐的 10/10 headless smoke，以及 Python Godot 合约检查
+  全部通过。
+- 1024×1024 benchmark 使用 2,048 条命令，报告 256 个活跃脏区、1,048,576-byte payload、
+  8.033 ms 命令批、2.240 ms 脏批消费、checksum `5901029088708457294`，第二宿主确定性重放
+  为 PASS。该时间是本机 VS18 Debug 单次结果，只用于本轮趋势基线。
+- 当前实现尚未提交、推送或进入 PR，因此 `todo.md` 的 P0.3/P2 复选框保持未勾选；发布并完成
+  远端 CI/审查前不得声明 P2 已进入 `main`。
 
 验证结果只说明对应提交和审计时点；代码、内容或构建环境变化后必须按 `AGENTS.md` 重新验证。
