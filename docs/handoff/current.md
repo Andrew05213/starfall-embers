@@ -1,12 +1,12 @@
 # 当前跨会话交接
 
-> Last verified: 2026-07-29
+> Last verified: 2026-08-02
 >
 > Repository: `Andrew05213/starfall-embers`
 >
 > 本文件是日期化操作快照。执行写操作前，必须用本地 Git 和 GitHub 重新确认会变化的事实。
 
-## 1. 权威来源与使用方式
+## 1. 权威来源与维护规则
 
 - 人工维护的内容权威源位于 `content/src`；`content/generated` 和生成的可读文档只由
   `contentc` 生成，不得手改。
@@ -14,80 +14,93 @@
   `content/src/slices/well-saga-first-slice.json` 为准，并由 Schema、编译器和测试约束。
 - `project_reference` 是经项目负责人批准入库的上游依据，不自动覆盖内容权威源、Schema、
   ADR 或 `AGENTS.md`。
-- `project_reference/.../文档/07_项目进度与下一阶段交接_2026-07-26.md` 记录的是
-  PR #4 时期的历史状态，只可作为背景资料，不是当前操作入口。
+- `project_reference/.../文档/07_项目进度与下一阶段交接_2026-07-26.md` 是历史资料，不是
+  当前操作入口。
+- 每项有范围的仓库或 GitHub 操作完成后，必须同时复核并更新本文件与 `todo.md`。易变状态
+  和验证证据写在本文件；`todo.md` 只在合并与验收门槛实际满足时勾选，否则记录日期化对账。
 
 ## 2. GitHub 与分支关系
 
-- `main` 的已知远端 head 为 `2b82c72`。
-- `agent/design-baseline-20260726`：
-  - 已推送设计基线、仓库规则、LFS 归一化、交接入口和长期路线图；路线图提交为
-    `10eb602`。
-  - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 为以 `main` 为目标的
-    Draft 设计基线 PR；本交接更新是其后的纯文档状态同步。
-- [PR #5](https://github.com/Andrew05213/starfall-embers/pull/5)：
-  - Draft，head 为 `agent/content-ledger-well-saga`，已知 head `76c0b15`。
-  - base 仍为持续更新中的 `agent/design-baseline-20260726`；设计基线合并后必须重新变基并
-    改指 `main`。
-  - 已发布差异应保持为内容台账、井星→萨迦切片、内容编译器、文档和 CI 共 16 个文件。
-- [PR #4](https://github.com/Andrew05213/starfall-embers/pull/4)：
-  - Draft，head 为 `agent/combat-gate1` 的 `a556cd8`，base 为 `main`。
-  - Gate 1.5 仍保持 GDScript 权威模拟、C++ 原生影子模拟的边界。
+- `main` 的已知远端 head 为 `267b18b`。
+- [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
+  为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
+- [PR #5](https://github.com/Andrew05213/starfall-embers/pull/5) 已变基并改指 `main`，确认保持
+  预期 16 个文件后完成验证与合并；merge commit 为 `df64f49`。
+- [PR #4](https://github.com/Andrew05213/starfall-embers/pull/4) 已于本次维护中从 Draft 改为
+  Ready 并合并；head 为 `75f81e3`，merge commit 为 `267b18b`。合并前 8/8 CI checks 全绿，
+  GitHub 报告 CLEAN 且 MERGEABLE；远端 `agent/combat-gate1` 分支仍保留。
+- [PR #7](https://github.com/Andrew05213/starfall-embers/pull/7) 仍为以 `main` 为 base 的 Draft，
+  head 为 `edfaa6f`。已发布范围是萨迦 `concept-candidate` 台账、编译/测试支持和 16 张 LFS
+  PNG；2026-07-31 的 6/6 CI checks 全绿。由于 `main` 已继续前进，审查或合并前必须重新
+  获取可合并性并按需变基。
+- [PR #3](https://github.com/Andrew05213/starfall-embers/pull/3) 仍为旧的 Draft 原生区块基础，
+  head 为 `b4ec6ab`，其 GitHub 基线仍停在旧 `main` `2b82c72`。不得直接合并；应从当前
+  `main` 新建移植分支，定向移植区块存储、批命令、脏区、checksum、测试和 benchmark，
+  并手工适配 PR #4 已合并的 ballistics 与 `SimulationHost`。
+- [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 是本次纯文档状态维护 Draft，
+  head 分支为 `codex/update-status-after-pr4`，base 为 `main`。范围只允许包含 `AGENTS.md`、
+  `todo.md` 和 `docs/handoff/current.md`。
 
 ## 3. 本机 worktree
 
 以下路径只描述 Andrew 当前机器，换机或清理后必须重新运行 `git worktree list`：
 
 - `C:\Users\Andrew\Documents\game`
-  - `agent/content-ledger-well-saga`，当前主要工作区。
+  - `agent/content-ledger-well-saga`，head `76c0b15`；相对远端 ahead 1、behind 7。
   - 含受保护的未提交工作，禁止擅自暂存、重置、覆盖或删除。
 - `C:\tmp\starfall-design-baseline-rules`
-  - `agent/design-baseline-20260726`，用于设计基线、仓库规则和后续 LFS 整理。
+  - `agent/design-baseline-20260726`，head `01c99e3`；保留为设计基线与 LFS 审计工作区。
+- `C:\tmp\starfall-pr5-rebase-20260729`
+  - `codex/pr5-rebase-20260729`，head `02f8dda`；PR #5 的历史变基工作区。
+- `C:\tmp\starfall-pr4-native-convergence-20260731`
+  - `codex/pr4-native-convergence-20260731`，head `75f81e3`，跟踪
+    `origin/agent/combat-gate1`；PR #4 已合并后的保留工作区。
+- `C:\tmp\starfall-saga-candidates-20260730`
+  - `codex/saga-concept-candidates`，head `edfaa6f`；对应 PR #7，另含受保护的后续工作。
+- `C:\tmp\starfall-status-after-pr4-20260802`
+  - `codex/update-status-after-pr4`，从合并 PR #4 后的 `main` `267b18b` 建立；只用于本次
+    `AGENTS.md`、`todo.md` 与交接快照维护。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
-  - detached `a556cd8`，用于 PR #4 Gate 1.5 的隔离复现，不是当前开发分支。
+  - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
 ## 4. 当前受保护的未提交工作
 
-主要工作区已知包含：
+主要工作区 `C:\Users\Andrew\Documents\game` 在 2026-08-02 复核仍包含：
 
 - `game/project.godot` 的 Godot 自动序列化改动。
-- `tools/contentc/src/index.ts` 和 `tools/contentc/test/contentc.test.ts` 的资产目录编译/测试改动。
-- 四个未跟踪的资产目录文件：
-  - `content/src/assets/saga-concept-candidates.json`
-  - `content/schemas/asset-catalog.schema.json`
-  - `content/generated/assets/saga-concept-candidates.json`
-  - `docs/design/saga-concept-candidates.md`
-- `project_reference/.../素材/萨迦/概念候选` 下 16 张未跟踪 PNG。
+- `tools/contentc/src/index.ts` 和 `tools/contentc/test/contentc.test.ts` 的资产目录后续改动。
+- 未跟踪的资产 Schema、权威源、生成 JSON 和设计文档目录。
+- `project_reference/.../素材/萨迦/概念候选` 下与 PR #7 同源的 16 张未跟踪 PNG。
 
-这 16 个候选目录项由 10 个环境、3 个装置和 3 个角色组成，状态均为
-`concept-candidate`；另有 5 个 `specification-only` 的轮坠中变体规划。它们尚未属于
-PR #5，也不得接入正式 Godot 场景。处理前必须重新检查工作区，因为这些文件可能继续变化。
+萨迦 worktree `C:\tmp\starfall-saga-candidates-20260730` 在 2026-08-02 复核包含 5 个已跟踪
+修改和 10 个未跟踪后续项：
 
-2026-07-29 复核：所有 16 张图均为 `v01` PNG，路径仅位于
-`project_reference/.../素材/萨迦/概念候选/{区域,装置,角色}`。区域图为 16:9 概念构图；
-三台装置与三名角色已经洋红键去背，台账声明为硬边 Alpha 候选。它们依然只是构图、色板、
-材质与比例依据，不是可直接接入的 Sprite、tile、地质背景或生产资产。
+- 5 个已跟踪修改：候选权威 JSON、生成 JSON、可读文档和两处 `contentc` 编译/测试支持。
+- 5 张未跟踪 `during_rotation` 区域 PNG。
+- 4 个未跟踪的无下城生产验收权威源、Schema、生成 JSON 和文档。
+- 1 个未跟踪审查目录（含审查 README）。
 
-普通 `git status` 还会把设计基线中的既有 PNG/ZIP 显示为修改。审计已证明这些是原始 Git
-blob 与现行 LFS 属性不一致造成的假修改；不得据此覆盖或重新暂存素材。
+以上两组改动都未被本轮暂存、重置、覆盖或删除。PR #7 已发布的 16 张图仍保持
+`concept-candidate`，不得接入正式 Godot 场景；5 张 `during_rotation` 图和生产验收资料须
+另行审计，不得顺带加入 PR #7。
 
 ## 5. Git LFS 审计与远端恢复验证
 
-- 设计基线已跟踪的 43 张 PNG、1 个 ZIP 和 2 个 DOCX 已在本地定向归一化为 46 个标准
-  Git LFS 指针；没有对 `project_reference` 执行无范围重新暂存。
-- 除 ZIP 外的 45 个二进制与归一化前 `23a5734` 中的原始内容完全一致；43 张 PNG 均可读取，
-  两份 DOCX 结构有效。
+- 设计基线已跟踪的 43 张 PNG、1 个 ZIP 和 2 个 DOCX 已定向归一化为 46 个标准 Git LFS
+  指针；没有对 `project_reference` 执行无范围重新暂存。
+- 除 ZIP 外的 45 个二进制与归一化前原始内容一致；43 张 PNG 均可读取，两份 DOCX 结构
+  有效。
 - 有效 ZIP 大小为 4,153,650 字节，SHA-256 为
-  `79CFAE00B4E966F4643821EC1E86FA9D70BA48F9B2C3928DEC5BE462CFFCB7D0`。ZIP 结构有效，
-  含 14 个目录项、10 个实际文件；所有文件均可完整读取且声明长度匹配。
-- 截断 ZIP 已保留在
-  `C:\tmp\starfall-design-baseline-backups\2026-07-29\井星_区域背景审核包_V0.1.truncated-43E497EEAC1251C2.zip`，
+  `79CFAE00B4E966F4643821EC1E86FA9D70BA48F9B2C3928DEC5BE462CFFCB7D0`；含 14 个目录项、
+  10 个实际文件，结构、读取与声明长度验证全部通过。
+- 截断 ZIP 备份仍位于
+  `C:\tmp\starfall-design-baseline-backups\2026-07-29\井星_区域背景审核包_V0.1.truncated-43E497EEAC1251C2.zip`；
   大小 786,446 字节，SHA-256 为
-  `43E497EEAC1251C2F1917A08CEE1819D4E56319A706379124BDFB9CFC7A68026`；不得删除该备份。
-- 当前状态：**本地 LFS 归一化和远端对象恢复验证均已完成**。46/46 个 LFS 对象已推送，
-  临时干净克隆中的 `git lfs pull`、对象哈希/大小复核和 `git lfs fsck` 均通过。
-- `.git\lfs\tmp` 的拒绝写入来自 Codex 沙箱 ACL；Andrew 本身具有完全控制。LFS 写操作应
-  使用获批的非沙箱执行环境，不得削弱沙箱 ACL。
+  `43E497EEAC1251C2F1917A08CEE1819D4E56319A706379124BDFB9CFC7A68026`，不得删除。
+- 46/46 个 LFS 对象已推送；临时干净克隆的 `git lfs pull`、OID/大小复核、PNG/DOCX/ZIP
+  结构检查和 `git lfs fsck` 全部通过。
+- `.git\lfs\tmp` 的拒绝写入来自 Codex 沙箱 ACL。Git LFS 写操作使用获批的非沙箱执行环境；
+  不得削弱或移除该安全 ACL。
 
 ## 6. 冻结的井星→萨迦首发切片
 
@@ -98,37 +111,32 @@ blob 与现行 LFS 属性不一致造成的假修改；不得据此覆盖或重�
   无缝地质背景或正式场景资产。
 - 六种终局仍保持开放，首发切片不得声明唯一官方结局。
 
-## 7. 后续顺序
+## 7. Native 权威基线
 
-1. 审查 [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 并等待设计基线合并。
-2. 设计基线合并后，将 `agent/content-ledger-well-saga` 变基到已合并基线，改指 PR #5
-   到 `main`，确认仍只有预期 16 个文件并等待 CI 全绿。
-3. 最后为当前未提交的萨迦概念候选建立独立范围；不得混入设计基线或未经复核的 PR #5。
+- PR #4 已把 Gate 1.5 合并到 `main`：支持 `gdscript_fallback`、`native_shadow` 和
+  `native_authoritative` 三种模式。
+- 权威模式由 C++ 决定弹体推进、寿命、命中、销毁和事件顺序；Godot 批量提交输入并消费
+  快照/事件，保持固定 30 Hz、显式 seed 与 60 Hz 表现插值。
+- 双跑副作用保持单次执行，GDScript 回退仍可独立运行；在新移植分支通过等价验证前不得删除
+  回退路径。
+- 合并证据：隔离复现 Native 3/3、Godot 8/8、Windows VS2022 `/MD` 桥接构建通过；最终
+  PR 8/8 CI checks 全绿。
 
-## 8. 最近验证证据
+## 8. 后续顺序
 
-- PR #4 Gate 1.5 隔离复现：Native 3/3、Godot 8/8、VS2022 `/MD` 桥接构建通过。
-- PR #5 已发布内容变更：TypeScript、生成一致性、6/6 内容测试、CTest 1/1 和 Godot 合约检查通过。
-- 2026-07-29 萨迦候选台账工作区：`npm run validate`、`build`、`check`、`test` 与
-  `tsc --noEmit` 通过；内容测试为 7/7。此结果不表示候选图已获生产验收，也不替代 Godot
-  场景测试。
-- 设计素材审计：59 张现有 PNG 可读取；46 个已跟踪二进制均形成标准 LFS 指针，指针 OID
-  和 size 与工作区内容一致；除预期替换的 ZIP 外，其余 45 个原始内容未变化。
-- 远端恢复验证：已显式推送 46/46 个 LFS 对象（共 17 MB）；临时干净克隆
-  `C:\tmp\starfall-lfs-verify-20260729-10eb602` 在禁用自动 smudge 后先显示 46 个指针，
-  随后 `git lfs pull` 完整恢复 43 张 PNG、1 个 ZIP 和 2 个 DOCX；全部对象的 OID 与 size
-  匹配，PNG 可读取、DOCX 结构有效、ZIP 14 个目录项/10 个实际文件均可完整读取，
-  `git lfs fsck` 返回 `Git LFS fsck OK`。
+1. 审查并合并纯文档状态维护 PR #8；它不得夹带受保护 worktree 的任何文件。
+2. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
+   变基，验证后再决定 Ready 与合并。
+3. 从最新 `main` 建立 P0.3 原生区块移植分支；不得直接合并 PR #3。
+4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
+5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
 
-- 复核日期：2026-07-29。
-- 本地主要工作区：`agent/content-ledger-well-saga`，head `76c0b15`。
-- GitHub 远端分支引用复核：`main` 为 `2b82c72`；设计基线已经由 `10eb602` 推送并创建
-  Draft PR #6；内容台账为 `76c0b15`。本交接更新是 PR #6 上的纯文档后续提交。
-- 第 4 节列出的主要工作区改动仍未提交，也未被本轮暂存、重置或删除。
-- 本轮在独立设计基线 worktree 中提交 `AGENTS.md` 与 `todo.md`，推送分支和 46 个 LFS
-  对象，完成干净克隆远端恢复验证并创建 Draft PR #6；普通全量状态查询仍可能因
-  `.git/lfs/tmp` 的沙箱 ACL 失败。
+- PR #4 已完成 Ready、合并与远端 `main` 复核；merge commit 为 `267b18b`。
+- 本次状态维护只修改 `AGENTS.md`、`todo.md` 和 `docs/handoff/current.md`，已通过独立分支
+  `codex/update-status-after-pr4` 发布为 Draft PR #8。
+- 主要工作区与萨迦 worktree 的受保护改动保持原状；本轮没有归一化、暂存或删除其中素材。
+- 普通沙箱内 `git status` 仍可能因共享 `.git\lfs\tmp` 的安全 ACL 失败；这不是素材损坏证据。
 
 验证结果只说明对应提交和审计时点；代码、内容或构建环境变化后必须按 `AGENTS.md` 重新验证。
