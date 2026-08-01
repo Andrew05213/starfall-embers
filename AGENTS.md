@@ -28,6 +28,10 @@ benchmarks, and architecture records for Fallen Stars, Living Matter.
   snapshot. Reconfirm mutable facts with local Git and GitHub before any write action.
 - Update the handoff in the same scoped change whenever branch relationships, pull-request bases,
   blockers, protected local work, or reported validation results materially change.
+- After every completed scoped repository or GitHub operation, review and update both `todo.md`
+  and `docs/handoff/current.md` in the same follow-up change. Put mutable evidence in the handoff;
+  change roadmap checkboxes only when their merge and acceptance conditions are actually met, and
+  otherwise record a dated roadmap reconciliation without inventing progress.
 - The handoff cannot override `content/src`, schemas, ADRs, or the non-negotiable boundaries in this
   file. When sources conflict, those authoritative sources take precedence.
 - Never put credentials, access tokens, private keys, or other secrets in the handoff.
