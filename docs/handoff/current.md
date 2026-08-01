@@ -21,7 +21,7 @@
 
 ## 2. GitHub 与分支关系
 
-- `main` 的已知远端 head 为 `401d65e`。
+- `main` 的最新实质功能 head 为 `fc22398`。
 - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
   为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
 - [PR #5](https://github.com/Andrew05213/starfall-embers/pull/5) 已变基并改指 `main`，确认保持
@@ -37,10 +37,9 @@
   `b4ec6ab` 未直接合并。
 - [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 已在 8/8 checks 全绿后合并，
   merge commit 为 `401d65e`；`AGENTS.md`、`todo.md` 与本交接已进入 `main`。
-- [PR #9](https://github.com/Andrew05213/starfall-embers/pull/9) 是取代 PR #3 的 P0.3/P2
-  Draft，head 为 `codex/native-chunk-p2` 的 `b00f0db`，base 为 `main` `401d65e`。GitHub
-  报告 MERGEABLE；content 与 native-core 两组 checks 已通过，Godot 与 Windows bridge
-  checks 仍在运行。
+- [PR #9](https://github.com/Andrew05213/starfall-embers/pull/9) 已在 8/8 checks 全绿、CLEAN
+  且 MERGEABLE 后合并，merge commit 为 `fc22398`；它取代了已关闭的 PR #3，并完成
+  P0.3/P2 的原生区块与批传输基线。
 
 ## 3. 本机 worktree
 
@@ -64,6 +63,9 @@
 - `C:\tmp\starfall-native-chunk-p2-20260802`
   - `codex/native-chunk-p2`，从合并 PR #8 后的 `main` `401d65e` 建立；只用于定向移植
     PR #3 的原生区块基础并完成 P0.3/P2 验收。
+- `C:\tmp\starfall-status-after-p2-20260802`
+  - `codex/update-status-after-p2`，从合并 PR #9 后的 `main` `fc22398` 建立；只用于核销
+    `current.md` 与 `todo.md`，不得夹带代码、构建输出或素材。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
@@ -128,12 +130,12 @@
 
 ## 8. 后续顺序
 
-1. 等待 PR #9 的 Godot 与 Windows bridge checks 完成；全绿后审查范围与验证证据，再决定
-   Ready 和合并。
-2. PR #9 合并后更新 P0.3/P2 复选框和 `main` head；旧 PR #3 已关闭，不得重新开启或合并。
-3. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
+1. 合并本次纯 `current.md`/`todo.md` 核销，使 P0.3/P2 完成状态进入 `main`。
+2. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
    变基，验证后再决定 Ready 与合并。
-4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
+3. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
+4. 随后进入 P3，按固体、粉末、液体和气体逐类迁移材质玩法权威；每类保留 GDScript
+   参考模型、确定性重放和性能证据。
 5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
@@ -162,8 +164,8 @@
   1,048,576-byte payload、0.899 ms 命令批、0.386 ms 脏批消费、checksum
   `5901029088708457294`，第二宿主确定性重放为 PASS。时间是本机单次结果，只用于本轮趋势
   基线；对应 Debug 单次结果为 8.033 ms 与 2.240 ms，checksum 相同。
-- 当前实现已提交为 `b00f0db` 并发布到 Draft PR #9；旧 PR #3 已关闭。远端 Godot/Windows
-  checks 与审查合并尚未完成，因此 `todo.md` 的 P0.3/P2 复选框保持未勾选，不得声明 P2 已
-  进入 `main`。
+- 实现最终 head 为 `e01684e`，已通过 PR #9 合并为 `fc22398`；远端 content、native-core、
+  Godot 与 Windows bridge 共 8/8 checks 全绿，旧 PR #3 已关闭。因此 `todo.md` 的 P0.3
+  与 P2 复选框可以正式核销。
 
 验证结果只说明对应提交和审计时点；代码、内容或构建环境变化后必须按 `AGENTS.md` 重新验证。
