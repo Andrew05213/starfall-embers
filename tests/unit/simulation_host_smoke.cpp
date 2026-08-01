@@ -2,16 +2,23 @@
 
 #include <cassert>
 #include <cmath>
+#include <stdexcept>
 #include <utility>
+#include <variant>
 
 namespace {
 
 using starfall::sim::Gate1BallisticBaseline;
+using starfall::sim::ExtractCircleCommand;
+using starfall::sim::Material;
+using starfall::sim::MaterialCommandBatchDto;
+using starfall::sim::PaintCircleCommand;
 using starfall::sim::ProjectileCommandBatch;
 using starfall::sim::ProjectileEventKind;
 using starfall::sim::RetireProjectileCommand;
 using starfall::sim::RetireReason;
 using starfall::sim::SimulationHost;
+using starfall::sim::material_transport_dto_version;
 
 [[nodiscard]] bool near(double actual, double expected, double tolerance = 1.0e-9) {
     return std::abs(actual - expected) <= tolerance;
@@ -39,6 +46,64 @@ void test_default_gate1_configuration() {
     assert(near(host.config().primary_gravity.surface_acceleration, 320.0));
     assert(near(host.fixed_step_seconds(), 1.0 / 30.0));
     assert(host.tick() == 0);
+    assert(host.material_world().config().width == 160);
+    assert(host.material_world().config().height == 90);
+    assert(host.material_world().config().chunk_size == 64);
+    assert(host.material_world().tick() == 0);
+}
+
+void test_material_batches_share_fixed_host_ticks() {
+    SimulationHost host;
+    host.submit_material_commands({
+        .version = material_transport_dto_version,
+        .commands = {
+            PaintCircleCommand{1, 1, 0, Material::rock},
+            PaintCircleCommand{159, 89, 0, Material::metal},
+        },
+    });
+    host.submit_material_commands({
+        .version = material_transport_dto_version,
+        .commands = {ExtractCircleCommand{1, 1, 0}},
+    });
+    assert(host.pending_material_command_count() == 3);
+
+    host.step();
+    assert(host.tick() == 1);
+    assert(host.material_world().tick() == 1);
+    assert(host.pending_material_command_count() == 0);
+    assert(host.material_command_results().version == material_transport_dto_version);
+    assert(host.material_command_results().tick == 1);
+    assert(host.material_command_results().results.size() == 3);
+    const auto extracted = std::get<starfall::sim::ExtractionStats>(
+        host.material_command_results().results.back()
+    );
+    assert(extracted.total == 1 && extracted.rock == 1);
+
+    const auto dirty = host.drain_dirty_chunks();
+    assert(dirty.tick == 1);
+    assert(dirty.chunks.size() == 2);
+    assert(dirty.chunks[0].chunk_x == 0 && dirty.chunks[0].chunk_y == 0);
+    assert(dirty.chunks[1].chunk_x == 2 && dirty.chunks[1].chunk_y == 1);
+
+    const auto results = host.drain_material_command_results();
+    assert(results.results.size() == 3);
+    assert(host.material_command_results().results.empty());
+}
+
+void test_material_dto_version_rejection_is_atomic() {
+    SimulationHost host;
+    bool rejected = false;
+    try {
+        host.submit_material_commands({
+            .version = material_transport_dto_version + 1,
+            .commands = {PaintCircleCommand{2, 2, 0, Material::rock}},
+        });
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    assert(rejected);
+    assert(host.pending_material_command_count() == 0);
+    assert(host.material_world().material_at(2, 2) == Material::air);
 }
 
 void test_coalesced_command_batches_and_state_readback() {
@@ -128,6 +193,16 @@ void test_two_hosts_are_deterministic() {
         first.submit_projectile_commands(commands);
         second.submit_projectile_commands(commands);
     }
+    const MaterialCommandBatchDto material_commands{
+        .version = material_transport_dto_version,
+        .commands = {
+            PaintCircleCommand{80, 45, 8, Material::rock},
+            PaintCircleCommand{80, 45, 2, Material::metal},
+            ExtractCircleCommand{80, 45, 3},
+        },
+    };
+    first.submit_material_commands(material_commands);
+    second.submit_material_commands(material_commands);
     for (int step = 0; step < 12; ++step) {
         first.step();
         second.step();
@@ -145,12 +220,16 @@ void test_two_hosts_are_deterministic() {
         assert(near(lhs.projectiles[index].velocity.x, rhs.projectiles[index].velocity.x));
         assert(near(lhs.projectiles[index].velocity.y, rhs.projectiles[index].velocity.y));
     }
+    assert(first.material_checksum() == second.material_checksum());
+    assert(first.material_world().snapshot().cells == second.material_world().snapshot().cells);
 }
 
 } // namespace
 
 int main() {
     test_default_gate1_configuration();
+    test_material_batches_share_fixed_host_ticks();
+    test_material_dto_version_rejection_is_atomic();
     test_coalesced_command_batches_and_state_readback();
     test_retire_batch_round_trip();
     test_catch_up_steps_accumulate_events_until_drain();

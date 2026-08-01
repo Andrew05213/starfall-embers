@@ -52,6 +52,11 @@ contracts = {
         "remove_gravity_source",
         "get_stats",
     ),
+    GAME / "scripts" / "simulation" / "native_material_chunk_view.gd": (
+        "configure_world",
+        "apply_dirty_chunk_batch",
+        "get_material_at_cell",
+    ),
     GAME / "scripts" / "demo" / "player_controller.gd": (
         "reset_player",
         "get_cooldown_ratio",
@@ -124,6 +129,71 @@ for path, functions in contracts.items():
             re.MULTILINE,
         ) is None:
             fail(f"{path.relative_to(ROOT)} lacks func {function}()")
+
+material_source = require_text(GAME / "scripts" / "simulation" / "material_world.gd")
+material_enum_match = re.search(
+    r"enum\s+CellMaterial\s*\{(?P<body>.*?)\}", material_source, re.DOTALL
+)
+if material_enum_match is None:
+    fail("material_world.gd lacks enum CellMaterial")
+
+parsed_materials: list[tuple[str, int]] = []
+next_value = 0
+for raw_entry in material_enum_match.group("body").split(","):
+    entry = raw_entry.split("#", 1)[0].strip()
+    if not entry:
+        continue
+    entry_match = re.fullmatch(r"([A-Z][A-Z0-9_]*)(?:\s*=\s*(\d+))?", entry)
+    if entry_match is None:
+        fail(f"cannot parse CellMaterial entry: {entry!r}")
+    name, explicit_value = entry_match.groups()
+    value = int(explicit_value) if explicit_value is not None else next_value
+    parsed_materials.append((name, value))
+    next_value = value + 1
+
+expected_materials = [
+    ("AIR", 0),
+    ("ROCK", 1),
+    ("SAND", 2),
+    ("WATER", 3),
+    ("OIL", 4),
+    ("FIRE", 5),
+    ("SMOKE", 6),
+    ("LAVA", 7),
+    ("STEAM", 8),
+    ("METAL", 9),
+]
+if parsed_materials != expected_materials:
+    fail(
+        "CellMaterial transport IDs drifted: "
+        f"expected {expected_materials!r}, got {parsed_materials!r}"
+    )
+
+bridge_header = require_text(
+    ROOT
+    / "native"
+    / "godot_bridge"
+    / "include"
+    / "starfall"
+    / "godot_bridge"
+    / "simulation_host_node.hpp"
+)
+bridge_source = require_text(
+    ROOT / "native" / "godot_bridge" / "src" / "simulation_host_node.cpp"
+)
+chunk_smoke = require_text(GAME / "tests" / "native_chunk_transport_smoke.gd")
+for native_api in (
+    "get_material_transport_version",
+    "configure_material_world",
+    "submit_material_commands",
+    "drain_material_command_result_batch",
+    "drain_dirty_chunk_batch",
+    "get_material_checksum_hex",
+):
+    if native_api not in bridge_header or native_api not in bridge_source:
+        fail(f"native material bridge lacks {native_api}")
+    if native_api not in chunk_smoke:
+        fail(f"native chunk smoke lacks {native_api} coverage")
 
 shadow_source = require_text(GAME / "scripts" / "combat" / "native_ballistics_shadow.gd")
 for native_api in (

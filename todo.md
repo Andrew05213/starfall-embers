@@ -6,7 +6,11 @@
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
 > 最近一次路线图对账：PR #6、PR #5 与 PR #4 已合并并完成对应验收；P0.2 的萨迦候选
-> 收纳和 P0.3 的原生区块移植仍未完成。本次纯文档状态维护已发布，未新增路线图里程碑。
+> 收纳和 P0.3 的原生区块移植仍未完成。PR #8 已合并使交接状态进入 `main`；P0.3/P2
+> 隔离实现已完成本地 Debug/Release CTest、随机参考模型、Godot bridge 与 10/10 headless
+> smoke、确定性重放及 Release 1024² benchmark 验证，现已发布为取代旧 PR #3 的 Draft
+> PR #9；PR #3 已关闭。PR #9
+> 尚未完成全部远端检查、审查和合并，因此没有新增已完成复选框。
 
 ## 使用规则
 

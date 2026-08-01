@@ -9,6 +9,7 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_int64_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
+#include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 
 namespace starfall::godot_bridge {
@@ -56,6 +57,21 @@ public:
         const godot::PackedInt64Array& projectile_ids,
         const godot::PackedInt32Array& reasons
     );
+    [[nodiscard]] std::int64_t get_material_transport_version() const noexcept;
+    bool configure_material_world(
+        std::int64_t width,
+        std::int64_t height,
+        std::int64_t initial_material,
+        std::int64_t dto_version
+    );
+    bool submit_material_commands(
+        std::int64_t dto_version,
+        const godot::PackedInt32Array& command_kinds,
+        const godot::PackedInt64Array& center_xs,
+        const godot::PackedInt64Array& center_ys,
+        const godot::PackedInt64Array& radii,
+        const godot::PackedInt32Array& material_ids
+    );
     void step_fixed();
 
     [[nodiscard]] std::int64_t get_tick() const noexcept;
@@ -64,6 +80,9 @@ public:
     [[nodiscard]] godot::Dictionary get_projectile_state_batch() const;
     /// Returns all events since the previous drain and consumes that queue.
     [[nodiscard]] godot::Dictionary drain_projectile_event_batch();
+    [[nodiscard]] godot::Dictionary drain_material_command_result_batch();
+    [[nodiscard]] godot::Dictionary drain_dirty_chunk_batch();
+    [[nodiscard]] godot::String get_material_checksum_hex() const;
 
 protected:
     static void _bind_methods();

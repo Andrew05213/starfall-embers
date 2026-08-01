@@ -4,8 +4,12 @@
 
 #include <cmath>
 #include <cstdint>
+#include <exception>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 #include <utility>
+#include <variant>
 
 namespace starfall::godot_bridge {
 namespace {
@@ -83,6 +87,32 @@ void StarfallSimulationHost::_bind_methods() {
         &StarfallSimulationHost::submit_projectile_retires
     );
     godot::ClassDB::bind_method(
+        godot::D_METHOD("get_material_transport_version"),
+        &StarfallSimulationHost::get_material_transport_version
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD(
+            "configure_material_world",
+            "width",
+            "height",
+            "initial_material",
+            "dto_version"
+        ),
+        &StarfallSimulationHost::configure_material_world
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD(
+            "submit_material_commands",
+            "dto_version",
+            "command_kinds",
+            "center_xs",
+            "center_ys",
+            "radii",
+            "material_ids"
+        ),
+        &StarfallSimulationHost::submit_material_commands
+    );
+    godot::ClassDB::bind_method(
         godot::D_METHOD("step_fixed"),
         &StarfallSimulationHost::step_fixed
     );
@@ -106,6 +136,18 @@ void StarfallSimulationHost::_bind_methods() {
         godot::D_METHOD("drain_projectile_event_batch"),
         &StarfallSimulationHost::drain_projectile_event_batch
     );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("drain_material_command_result_batch"),
+        &StarfallSimulationHost::drain_material_command_result_batch
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("drain_dirty_chunk_batch"),
+        &StarfallSimulationHost::drain_dirty_chunk_batch
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("get_material_checksum_hex"),
+        &StarfallSimulationHost::get_material_checksum_hex
+    );
 }
 
 void StarfallSimulationHost::reset_to_gate1_baseline() {
@@ -128,14 +170,13 @@ bool StarfallSimulationHost::configure_primary_gravity(
         return false;
     }
 
-    starfall::sim::SimulationHostConfig config{
-        .ticks_per_second = static_cast<std::uint32_t>(ticks_per_second),
-        .random_seed = static_cast<std::uint64_t>(random_seed),
-        .primary_gravity = {
-            .center = to_sim(center),
-            .surface_radius = surface_radius,
-            .surface_acceleration = surface_acceleration,
-        },
+    auto config = host_.config();
+    config.ticks_per_second = static_cast<std::uint32_t>(ticks_per_second);
+    config.random_seed = static_cast<std::uint64_t>(random_seed);
+    config.primary_gravity = {
+        .center = to_sim(center),
+        .surface_radius = surface_radius,
+        .surface_acceleration = surface_acceleration,
     };
     host_ = starfall::sim::SimulationHost{config};
     return true;
@@ -196,6 +237,86 @@ bool StarfallSimulationHost::submit_projectile_retires(
         });
     }
     host_.submit_projectile_commands(std::move(batch));
+    return true;
+}
+
+std::int64_t StarfallSimulationHost::get_material_transport_version() const noexcept {
+    return starfall::sim::material_transport_dto_version;
+}
+
+bool StarfallSimulationHost::configure_material_world(
+    std::int64_t width,
+    std::int64_t height,
+    std::int64_t initial_material,
+    std::int64_t dto_version
+) {
+    if (dto_version != starfall::sim::material_transport_dto_version
+        || width <= 0 || height <= 0
+        || width > std::numeric_limits<std::uint32_t>::max()
+        || height > std::numeric_limits<std::uint32_t>::max()
+        || initial_material < 0 || initial_material >= starfall::sim::material_count) {
+        return false;
+    }
+
+    auto config = host_.config();
+    config.material_world_width = static_cast<std::uint32_t>(width);
+    config.material_world_height = static_cast<std::uint32_t>(height);
+    config.initial_material = static_cast<starfall::sim::Material>(initial_material);
+    try {
+        host_ = starfall::sim::SimulationHost{config};
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
+
+bool StarfallSimulationHost::submit_material_commands(
+    std::int64_t dto_version,
+    const godot::PackedInt32Array& command_kinds,
+    const godot::PackedInt64Array& center_xs,
+    const godot::PackedInt64Array& center_ys,
+    const godot::PackedInt64Array& radii,
+    const godot::PackedInt32Array& material_ids
+) {
+    const std::int64_t count = command_kinds.size();
+    if (dto_version != starfall::sim::material_transport_dto_version
+        || center_xs.size() != count || center_ys.size() != count
+        || radii.size() != count || material_ids.size() != count) {
+        return false;
+    }
+
+    starfall::sim::MaterialCommandBatchDto batch;
+    batch.commands.reserve(static_cast<std::size_t>(count));
+    for (std::int64_t index = 0; index < count; ++index) {
+        if (command_kinds[index] < 0 || command_kinds[index] > 1
+            || radii[index] < 0
+            || static_cast<std::uint64_t>(radii[index])
+                > std::numeric_limits<std::uint32_t>::max()
+            || material_ids[index] < 0
+            || material_ids[index] >= starfall::sim::material_count) {
+            return false;
+        }
+        if (command_kinds[index] == 0) {
+            batch.commands.emplace_back(starfall::sim::PaintCircleCommand{
+                .center_x = center_xs[index],
+                .center_y = center_ys[index],
+                .radius = static_cast<std::uint32_t>(radii[index]),
+                .material = static_cast<starfall::sim::Material>(material_ids[index]),
+            });
+        } else {
+            batch.commands.emplace_back(starfall::sim::ExtractCircleCommand{
+                .center_x = center_xs[index],
+                .center_y = center_ys[index],
+                .radius = static_cast<std::uint32_t>(radii[index]),
+            });
+        }
+    }
+
+    try {
+        host_.submit_material_commands(std::move(batch));
+    } catch (const std::exception&) {
+        return false;
+    }
     return true;
 }
 
@@ -340,6 +461,83 @@ godot::Dictionary StarfallSimulationHost::drain_projectile_event_batch() {
     result["positions"] = positions;
     result["velocities"] = velocities;
     return result;
+}
+
+godot::Dictionary StarfallSimulationHost::drain_material_command_result_batch() {
+    const auto batch = host_.drain_material_command_results();
+    godot::PackedInt32Array command_kinds;
+    godot::PackedInt64Array totals;
+    godot::PackedInt64Array rock;
+    godot::PackedInt64Array sand;
+    godot::PackedInt64Array metal;
+
+    for (const auto& command_result : batch.results) {
+        if (std::holds_alternative<std::monostate>(command_result)) {
+            command_kinds.append(0);
+            totals.append(0);
+            rock.append(0);
+            sand.append(0);
+            metal.append(0);
+            continue;
+        }
+        const auto& extracted = std::get<starfall::sim::ExtractionStats>(command_result);
+        command_kinds.append(1);
+        totals.append(to_godot_id(extracted.total));
+        rock.append(to_godot_id(extracted.rock));
+        sand.append(to_godot_id(extracted.sand));
+        metal.append(to_godot_id(extracted.metal));
+    }
+
+    godot::Dictionary result;
+    result["version"] = static_cast<std::int64_t>(batch.version);
+    result["tick"] = to_godot_id(batch.tick);
+    result["command_kinds"] = command_kinds;
+    result["totals"] = totals;
+    result["rock"] = rock;
+    result["sand"] = sand;
+    result["metal"] = metal;
+    return result;
+}
+
+godot::Dictionary StarfallSimulationHost::drain_dirty_chunk_batch() {
+    const auto batch = host_.drain_dirty_chunks();
+    godot::PackedInt32Array chunk_xs;
+    godot::PackedInt32Array chunk_ys;
+    godot::PackedInt32Array widths;
+    godot::PackedInt32Array heights;
+    godot::PackedInt64Array byte_offsets;
+    godot::PackedByteArray cells;
+
+    std::uint64_t byte_offset = 0;
+    for (const auto& chunk : batch.chunks) {
+        chunk_xs.append(static_cast<std::int32_t>(chunk.chunk_x));
+        chunk_ys.append(static_cast<std::int32_t>(chunk.chunk_y));
+        widths.append(static_cast<std::int32_t>(chunk.width));
+        heights.append(static_cast<std::int32_t>(chunk.height));
+        byte_offsets.append(to_godot_id(byte_offset));
+        for (const auto cell : chunk.cells) {
+            cells.append(cell);
+        }
+        byte_offset += chunk.cells.size();
+    }
+
+    godot::Dictionary result;
+    result["version"] = static_cast<std::int64_t>(batch.version);
+    result["tick"] = to_godot_id(batch.tick);
+    result["chunk_size"] = static_cast<std::int64_t>(batch.chunk_size);
+    result["chunk_xs"] = chunk_xs;
+    result["chunk_ys"] = chunk_ys;
+    result["widths"] = widths;
+    result["heights"] = heights;
+    result["byte_offsets"] = byte_offsets;
+    result["cells"] = cells;
+    return result;
+}
+
+godot::String StarfallSimulationHost::get_material_checksum_hex() const {
+    std::ostringstream output;
+    output << std::hex << std::setfill('0') << std::setw(16) << host_.material_checksum();
+    return godot::String(output.str().c_str());
 }
 
 } // namespace starfall::godot_bridge

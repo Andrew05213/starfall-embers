@@ -198,6 +198,11 @@ jobs:
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_bridge_smoke.gd
 
+      - name: Verify versioned native chunk batch transport
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/native_chunk_transport_smoke.gd
+
       - name: Compare GDScript and native projectile trajectories
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
