@@ -33,12 +33,14 @@
   head 为 `edfaa6f`。已发布范围是萨迦 `concept-candidate` 台账、编译/测试支持和 16 张 LFS
   PNG；2026-07-31 的 6/6 CI checks 全绿。由于 `main` 已继续前进，审查或合并前必须重新
   获取可合并性并按需变基。
-- [PR #3](https://github.com/Andrew05213/starfall-embers/pull/3) 仍为旧的 Draft 原生区块基础，
-  head 为 `b4ec6ab`，其 GitHub 基线仍停在旧 `main` `2b82c72`。不得直接合并；应从当前
-  `main` 新建移植分支，定向移植区块存储、批命令、脏区、checksum、测试和 benchmark，
-  并手工适配 PR #4 已合并的 ballistics 与 `SimulationHost`。
+- [PR #3](https://github.com/Andrew05213/starfall-embers/pull/3) 已留下替代说明并关闭；旧 head
+  `b4ec6ab` 未直接合并。
 - [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 已在 8/8 checks 全绿后合并，
   merge commit 为 `401d65e`；`AGENTS.md`、`todo.md` 与本交接已进入 `main`。
+- [PR #9](https://github.com/Andrew05213/starfall-embers/pull/9) 是取代 PR #3 的 P0.3/P2
+  Draft，head 为 `codex/native-chunk-p2` 的 `b00f0db`，base 为 `main` `401d65e`。GitHub
+  报告 MERGEABLE；content 与 native-core 两组 checks 已通过，Godot 与 Windows bridge
+  checks 仍在运行。
 
 ## 3. 本机 worktree
 
@@ -126,11 +128,9 @@
 
 ## 8. 后续顺序
 
-1. 在 `codex/native-chunk-p2` 中定向移植 PR #3 的区块存储、批命令、脏区、checksum、
-   测试和 benchmark，手工适配已合并的 ballistics 与 `SimulationHost`；不得 cherry-pick
-   整个旧提交。
-2. 完成 64×64 区块、版本化 DTO、Godot 批传输、确定性重放和 1024² benchmark 验收，
-   发布替代 PR 后关闭或标记 PR #3 被取代。
+1. 等待 PR #9 的 Godot 与 Windows bridge checks 完成；全绿后审查范围与验证证据，再决定
+   Ready 和合并。
+2. PR #9 合并后更新 P0.3/P2 复选框和 `main` head；旧 PR #3 已关闭，不得重新开启或合并。
 3. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
    变基，验证后再决定 Ready 与合并。
 4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
@@ -161,7 +161,8 @@
 - 1024×1024 benchmark 使用 2,048 条命令，报告 256 个活跃脏区、1,048,576-byte payload、
   8.033 ms 命令批、2.240 ms 脏批消费、checksum `5901029088708457294`，第二宿主确定性重放
   为 PASS。该时间是本机 VS18 Debug 单次结果，只用于本轮趋势基线。
-- 当前实现尚未提交、推送或进入 PR，因此 `todo.md` 的 P0.3/P2 复选框保持未勾选；发布并完成
-  远端 CI/审查前不得声明 P2 已进入 `main`。
+- 当前实现已提交为 `b00f0db` 并发布到 Draft PR #9；旧 PR #3 已关闭。远端 Godot/Windows
+  checks 与审查合并尚未完成，因此 `todo.md` 的 P0.3/P2 复选框保持未勾选，不得声明 P2 已
+  进入 `main`。
 
 验证结果只说明对应提交和审计时点；代码、内容或构建环境变化后必须按 `AGENTS.md` 重新验证。
