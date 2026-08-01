@@ -37,6 +37,9 @@
   head 为 `b4ec6ab`，其 GitHub 基线仍停在旧 `main` `2b82c72`。不得直接合并；应从当前
   `main` 新建移植分支，定向移植区块存储、批命令、脏区、checksum、测试和 benchmark，
   并手工适配 PR #4 已合并的 ballistics 与 `SimulationHost`。
+- [PR #8](https://github.com/Andrew05213/starfall-embers/pull/8) 是本次纯文档状态维护 Draft，
+  head 分支为 `codex/update-status-after-pr4`，base 为 `main`。范围只允许包含 `AGENTS.md`、
+  `todo.md` 和 `docs/handoff/current.md`。
 
 ## 3. 本机 worktree
 
@@ -121,7 +124,7 @@
 
 ## 8. 后续顺序
 
-1. 审查并合并本次纯文档状态维护；它不得夹带受保护 worktree 的任何文件。
+1. 审查并合并纯文档状态维护 PR #8；它不得夹带受保护 worktree 的任何文件。
 2. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
    变基，验证后再决定 Ready 与合并。
 3. 从最新 `main` 建立 P0.3 原生区块移植分支；不得直接合并 PR #3。
@@ -131,8 +134,8 @@
 ## 9. 本次维护快照
 
 - PR #4 已完成 Ready、合并与远端 `main` 复核；merge commit 为 `267b18b`。
-- 本次状态维护只修改 `AGENTS.md`、`todo.md` 和 `docs/handoff/current.md`，位于独立分支
-  `codex/update-status-after-pr4`。
+- 本次状态维护只修改 `AGENTS.md`、`todo.md` 和 `docs/handoff/current.md`，已通过独立分支
+  `codex/update-status-after-pr4` 发布为 Draft PR #8。
 - 主要工作区与萨迦 worktree 的受保护改动保持原状；本轮没有归一化、暂存或删除其中素材。
 - 普通沙箱内 `git status` 仍可能因共享 `.git\lfs\tmp` 的安全 ACL 失败；这不是素材损坏证据。
 
