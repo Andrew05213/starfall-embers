@@ -155,12 +155,13 @@
   `ImageTexture`；没有增加逐像素 GDExtension 调用。
 - 区块协议固定为 64×64，材质 ID 固定为 `0..9`；未知 DTO 版本、非法材质或数组结构在写入前
   整批拒绝。ADR-0004 明确这一阶段不切换 GDScript 材质玩法权威，也不冻结存档格式。
-- 本地 VS18 Debug CTest 3/3 通过，其中包含独立朴素随机参考模型；Debug GDExtension 构建、
+- 本地 VS18 Debug 与 Release CTest 均为 3/3，通过独立朴素随机参考模型；Debug GDExtension 构建、
   Godot 4.7.1 headless import、与 CI 对齐的 10/10 headless smoke，以及 Python Godot 合约检查
   全部通过。
-- 1024×1024 benchmark 使用 2,048 条命令，报告 256 个活跃脏区、1,048,576-byte payload、
-  8.033 ms 命令批、2.240 ms 脏批消费、checksum `5901029088708457294`，第二宿主确定性重放
-  为 PASS。该时间是本机 VS18 Debug 单次结果，只用于本轮趋势基线。
+- VS18 Release 1024×1024 benchmark 使用 2,048 条命令，报告 256 个活跃脏区、
+  1,048,576-byte payload、0.899 ms 命令批、0.386 ms 脏批消费、checksum
+  `5901029088708457294`，第二宿主确定性重放为 PASS。时间是本机单次结果，只用于本轮趋势
+  基线；对应 Debug 单次结果为 8.033 ms 与 2.240 ms，checksum 相同。
 - 当前实现已提交为 `b00f0db` 并发布到 Draft PR #9；旧 PR #3 已关闭。远端 Godot/Windows
   checks 与审查合并尚未完成，因此 `todo.md` 的 P0.3/P2 复选框保持未勾选，不得声明 P2 已
   进入 `main`。
