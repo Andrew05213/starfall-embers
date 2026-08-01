@@ -25,12 +25,17 @@ def require_text(path: Path) -> str:
 
 
 project = require_text(GAME / "project.godot")
-scene = require_text(GAME / "scenes" / "main.tscn")
+demo_scene = require_text(GAME / "scenes" / "main.tscn")
+combat_scene = require_text(GAME / "scenes" / "combat_lab.tscn")
 
-if 'run/main_scene="res://scenes/main.tscn"' not in project:
-    fail("project.godot does not select the demo scene")
+if 'run/main_scene="res://scenes/combat_lab.tscn"' not in project:
+    fail("project.godot does not select the Gate-1 combat lab")
+if "common/physics_interpolation=true" not in project:
+    fail("project.godot does not enable render-time physics interpolation")
 
-resource_paths = re.findall(r'path="res://([^\"]+)"', scene)
+resource_paths = re.findall(
+    r'path="res://([^\"]+)"', demo_scene + "\n" + combat_scene
+)
 for relative in resource_paths:
     require_text(GAME / relative)
 
@@ -73,13 +78,66 @@ contracts = {
         "arm",
         "accept_starseed",
     ),
+    GAME / "scripts" / "combat" / "shot_profile.gd": ("is_valid",),
+    GAME / "scripts" / "combat" / "fire_scheduler.gd": (
+        "configure",
+        "advance",
+        "reset",
+    ),
+    GAME / "scripts" / "combat" / "aim_space.gd": (
+        "screen_to_world",
+        "direction_from_screen",
+    ),
+    GAME / "scripts" / "combat" / "juvenile_starseed.gd": (
+        "setup",
+        "simulate_step",
+    ),
+    GAME / "scripts" / "combat" / "combat_target.gd": (
+        "sweep_hit",
+        "receive_juvenile_hit",
+    ),
+    GAME / "scripts" / "combat" / "ballistic_particle_field.gd": (
+        "bind_material_world",
+        "emit_trail",
+        "emit_impact",
+        "simulate_step",
+    ),
+    GAME / "scripts" / "combat" / "combat_lab.gd": ("get_lab_state",),
+    GAME / "scripts" / "combat" / "combat_metrics.gd": (
+        "set_native_shadow_snapshot",
+    ),
+    GAME / "scripts" / "combat" / "native_ballistics_shadow.gd": (
+        "configure",
+        "set_mode",
+        "get_mode",
+        "track_projectile",
+        "get_snapshot",
+    ),
 }
 
 for path, functions in contracts.items():
     source = require_text(path)
     for function in functions:
-        if re.search(rf"^func\s+{re.escape(function)}\s*\(", source, re.MULTILINE) is None:
+        if re.search(
+            rf"^(?:static\s+)?func\s+{re.escape(function)}\s*\(",
+            source,
+            re.MULTILINE,
+        ) is None:
             fail(f"{path.relative_to(ROOT)} lacks func {function}()")
+
+shadow_source = require_text(GAME / "scripts" / "combat" / "native_ballistics_shadow.gd")
+for native_api in (
+    "StarfallSimulationHost",
+    "submit_projectile_spawns",
+    "submit_collision_world",
+    "get_projectile_state_batch",
+):
+    if native_api not in shadow_source:
+        fail(f"production native shadow lacks {native_api} bridge usage")
+
+for mode in ("gdscript_fallback", "native_shadow", "native_authoritative"):
+    if mode not in shadow_source:
+        fail(f"production native runtime lacks explicit {mode} mode")
 
 main_source = require_text(GAME / "scripts" / "main.gd")
 for action in ("move_left", "move_right", "jump", "fire_starseed"):
@@ -89,4 +147,8 @@ for action in ("move_left", "move_right", "jump", "fire_starseed"):
 if "starseed_requested.connect" not in main_source:
     fail("main scene does not connect the starseed request")
 
-print(f"demo contract: PASS ({len(resource_paths)} scene resources checked)")
+combat_source = require_text(GAME / "scripts" / "combat" / "combat_lab.gd")
+if "juvenile_requested.connect" not in combat_source:
+    fail("combat lab does not connect the juvenile starseed request")
+
+print(f"demo contract: PASS ({len(set(resource_paths))} scene resources checked)")

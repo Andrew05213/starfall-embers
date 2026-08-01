@@ -87,7 +87,7 @@ func set_player_state(state: Dictionary) -> void:
 		_energy_bar,
 		_energy_value,
 		float(state.get("energy", 0.0)),
-		float(state.get("max_energy", 120.0)),
+		float(state.get("max_energy", 100.0)),
 		"%d / %d"
 	)
 	_set_meter(

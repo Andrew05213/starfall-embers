@@ -4,7 +4,11 @@ const DEMO_SCENE := preload("res://scenes/main.tscn")
 const ASTEROID_CENTER := Vector2(320.0, 180.0)
 const SETTLE_FRAMES := 45
 const WALK_FRAMES := 90
-const JUMP_TIMEOUT_FRAMES := 180
+# Inverse-square gravity weakens above the 156 px body. A 116 px/s radial
+# launch from r≈170 returns in roughly 3.6 seconds (~215 physics frames), so
+# retain bounded headroom without allowing a drifting/escaping player to pass.
+const JUMP_TIMEOUT_FRAMES := 300
+const MAX_JUMP_HEIGHT := 130.0
 
 
 func _initialize() -> void:
@@ -69,7 +73,8 @@ func _run() -> void:
 	var max_radius: float = jump_start_radius
 	var became_airborne := false
 	var landed_again := false
-	for _frame in range(JUMP_TIMEOUT_FRAMES):
+	var landing_frame := -1
+	for frame in range(JUMP_TIMEOUT_FRAMES):
 		await physics_frame
 		max_radius = maxf(max_radius, player.global_position.distance_to(ASTEROID_CENTER))
 		var grounded := bool(player.get_state().get("grounded", false))
@@ -77,19 +82,32 @@ func _run() -> void:
 			became_airborne = true
 		elif became_airborne:
 			landed_again = true
+			landing_frame = frame + 1
 			break
-	if max_radius - jump_start_radius < 8.0:
+	var jump_height := max_radius - jump_start_radius
+	if jump_height < 8.0:
 		_fail("jump did not move the player away from the asteroid surface")
 		return
+	if jump_height > MAX_JUMP_HEIGHT:
+		_fail(
+			"jump exceeded the bounded inverse-square trajectory: %.2f px"
+			% jump_height
+		)
+		return
 	if not became_airborne or not landed_again:
-		_fail("jump did not complete an airborne-to-grounded cycle")
+		_fail(
+			"jump did not land within %d physics frames (max height %.2f px)"
+			% [JUMP_TIMEOUT_FRAMES, jump_height]
+		)
 		return
 
 	print(
 		"movement smoke: PASS arc_px=",
 		snappedf(walked_arc, 0.1),
 		" jump_height_px=",
-		snappedf(max_radius - jump_start_radius, 0.1)
+		snappedf(jump_height, 0.1),
+		" landing_frames=",
+		landing_frame
 	)
 	quit(0)
 

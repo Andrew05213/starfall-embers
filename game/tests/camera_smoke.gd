@@ -5,6 +5,7 @@ const ASTEROID_CENTER := Vector2(320.0, 180.0)
 const RIGHT_SPAWN := Vector2(490.0, 180.0)
 const SETTLE_FRAMES := 90
 const ANGLE_TOLERANCE := 0.12
+const HIGH_SPEED_TEST_FRAMES := 90
 
 
 func _initialize() -> void:
@@ -32,6 +33,12 @@ func _run() -> void:
 	if camera.ignore_rotation:
 		_fail("GravityCamera ignores rotation, so local up cannot remain screen-up")
 		return
+	if not bool(ProjectSettings.get_setting("physics/common/physics_interpolation", false)):
+		_fail("project physics interpolation is not enabled")
+		return
+	if camera.process_callback != Camera2D.CAMERA2D_PROCESS_PHYSICS:
+		_fail("GravityCamera is not updated on the physics clock")
+		return
 	if minf(camera.zoom.x, camera.zoom.y) < 1.5:
 		_fail("camera zoom does not present the asteroid as a local surface: %s" % camera.zoom)
 		return
@@ -54,7 +61,16 @@ func _run() -> void:
 		_fail("viewport transform does not apply camera rotation at the top spawn")
 		return
 
+	# A reset is an instantaneous relocation. Both player and camera must snap
+	# immediately and clear their interpolation history instead of sweeping from
+	# the old spawn for one rendered frame.
 	player.reset_player(RIGHT_SPAWN)
+	if camera.global_position.distance_to(player.global_position) > 0.01:
+		_fail("camera did not snap synchronously after player teleport")
+		return
+	if absf(wrapf(camera.rotation - camera.get_desired_rotation(), -PI, PI)) > 0.001:
+		_fail("camera rotation did not snap synchronously after player teleport")
+		return
 	for _frame in range(SETTLE_FRAMES):
 		await physics_frame
 	var radial_distance := player.global_position.distance_to(ASTEROID_CENTER)
@@ -72,6 +88,30 @@ func _run() -> void:
 		return
 	if not _viewport_maps_local_up_to_screen_up(demo, player):
 		_fail("viewport transform does not map right-side local up to screen up")
+		return
+
+	# Headless tests cannot inspect render-frame interpolation directly, but this
+	# catches update-order regressions: at a speed well above normal walking the
+	# physics camera must keep a stable, bounded follow error without alternating
+	# between stale and current target positions.
+	player.set_physics_process(false)
+	var follow_errors: Array[float] = []
+	var high_speed := Vector2(0.0, 255.0)
+	for _frame in range(HIGH_SPEED_TEST_FRAMES):
+		player.global_position += high_speed / 60.0
+		await physics_frame
+		follow_errors.append(camera.global_position.distance_to(player.global_position))
+	var tail_errors := follow_errors.slice(HIGH_SPEED_TEST_FRAMES / 2)
+	var minimum_error: float = tail_errors.min()
+	var maximum_error: float = tail_errors.max()
+	if maximum_error > 22.0:
+		_fail("high-speed camera follow error is unbounded: %.3f" % maximum_error)
+		return
+	if maximum_error - minimum_error > 1.0:
+		_fail(
+			"high-speed camera follow is unstable: min=%.3f max=%.3f"
+			% [minimum_error, maximum_error]
+		)
 		return
 
 	print(

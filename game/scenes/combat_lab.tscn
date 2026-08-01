@@ -1,0 +1,52 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/combat_lab.gd" id="1_lab"]
+[ext_resource type="Script" path="res://scripts/simulation/material_world.gd" id="2_world"]
+[ext_resource type="Script" path="res://scripts/combat/combat_player.gd" id="3_player"]
+[ext_resource type="Resource" path="res://resources/combat/basic_rifle.tres" id="4_profile"]
+[ext_resource type="Script" path="res://scripts/demo/gravity_camera.gd" id="5_camera"]
+[ext_resource type="Script" path="res://scripts/combat/combat_feedback.gd" id="6_feedback"]
+[ext_resource type="Script" path="res://scripts/combat/combat_metrics.gd" id="7_metrics"]
+[ext_resource type="Script" path="res://scripts/combat/native_ballistics_shadow.gd" id="8_shadow"]
+
+[node name="CombatLab" type="Node2D"]
+script = ExtResource("1_lab")
+
+[node name="MaterialWorld" type="Node2D" parent="."]
+script = ExtResource("2_world")
+terrain_generation_mode = "surface_patch"
+primary_gravity_center = Vector2(320, 10020)
+primary_gravity_acceleration = 320.0
+primary_surface_radius = 10000.0
+
+[node name="NativeBallisticsShadow" type="Node" parent="."]
+process_physics_priority = 100
+script = ExtResource("8_shadow")
+
+[node name="Player" type="Node2D" parent="."]
+z_index = 10
+position = Vector2(320, 10)
+script = ExtResource("3_player")
+material_world_path = NodePath("../MaterialWorld")
+shot_profile = ExtResource("4_profile")
+jump_speed = 178.0
+terminal_speed = 900.0
+horizontal_arena_enabled = true
+arena_min_x = 162.0
+arena_max_x = 478.0
+
+[node name="GravityCamera" type="Camera2D" parent="."]
+position = Vector2(320, 10)
+zoom = Vector2(2, 2)
+ignore_rotation = false
+enabled = true
+script = ExtResource("5_camera")
+target_path = NodePath("../Player")
+
+[node name="CombatFeedback" type="Node2D" parent="."]
+z_index = 15
+script = ExtResource("6_feedback")
+
+[node name="CombatMetrics" type="CanvasLayer" parent="."]
+layer = 20
+script = ExtResource("7_metrics")

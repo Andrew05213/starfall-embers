@@ -31,7 +31,7 @@
 - “击败敌人回收坠核尘 → 解锁地维稳定器 → 用引核星种完成激活”的完整胜负闭环；
 - 实时任务、资源、冷却、敌人数和模拟遥测 HUD。
 
-这套像素模拟暂由 GDScript 实现，用于快速验证规则；确认玩法后会按批处理边界迁移到 C++ `sim_core`。
+这套像素模拟的可玩表现暂由 GDScript 实现。Gate 1 枪感验证通过后，项目已开始按批处理边界迁移到 C++ `sim_core`：第一批原生切片覆盖井星自然重力、高速幼种固定步弹道、批量命令、状态快照和事件，并已通过 GDExtension 暴露给 Godot。Combat Lab 的真实发射入口现已并行运行两套弹道，并按相同弹龄比较轨迹、寿命和退役事件；GDScript 仍是权威实现，待碰撞代理迁移与持续回归通过后再切换表现消费者。
 
 ## 核心体验
 
@@ -63,7 +63,7 @@
 
 | 层级 | 方案 | 职责 |
 | --- | --- | --- |
-| 游戏表现层 | Godot 4.7.1 Standard | 场景、输入、UI、音频、渲染与编辑器工作流 |
+| 游戏表现层 | Godot 4.7.1 Standard | 场景、输入、UI、音频、渲染与编辑器工作流；GDExtension 保持 4.6 API 兼容下限 |
 | 模拟核心 | C++20 `sim_core` | 像素物质、反应、动态重力、星种和确定性状态更新 |
 | 引擎桥接 | 官方 `godot-cpp` GDExtension | 批量传递命令、事件和脏区块，不做逐像素跨边界调用 |
 | 构建与测试 | CMake、Ninja、CTest；后续接入 Catch2 | 独立构建、单元测试、集成测试和基准测试 |
@@ -80,6 +80,7 @@
 - CPU 是模拟权威源；GPU 负责呈现，不承担首版权威物理状态。
 
 详细边界见 [`docs/architecture.md`](docs/architecture.md)。
+Gate 1.5 的迁移范围、锁定参数和接入顺序见 [`docs/prototypes/gate1-native-migration.md`](docs/prototypes/gate1-native-migration.md)。
 
 ## 仓库结构
 
@@ -88,7 +89,7 @@
 ├── game/                    # Godot 工程、场景、脚本与表现层资源
 ├── native/
 │   ├── sim_core/            # 与引擎无关的 C++20 模拟核心
-│   └── godot_bridge/        # GDExtension 批处理桥（待接入 godot-cpp）
+│   └── godot_bridge/        # GDExtension 批处理桥（Godot 4.6 API 兼容基线）
 ├── content/
 │   ├── src/                 # 人工维护的内容源
 │   ├── schemas/             # JSON Schema
@@ -135,6 +136,33 @@ g++ -std=c++20 \
 /tmp/starfall_world_smoke
 ```
 
+### 构建 Godot 原生桥
+
+首次克隆或依赖版本变化后，先取得固定版本的 `godot-cpp` 子模块：
+
+```bash
+git submodule update --init --recursive
+```
+
+然后构建 GDExtension。必须在打开 Godot 工程前完成这一步；生成的动态库位于 `game/addons/starfall_sim/bin/`，属于本地构建产物，不提交仓库。
+
+```bash
+cmake -S . -B build/godot-bridge -G Ninja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DSTARFALL_BUILD_TESTS=OFF \
+  -DSTARFALL_BUILD_GODOT_BRIDGE=ON
+cmake --build build/godot-bridge --target starfall_godot_bridge
+```
+
+构建后可单独验证原生边界：
+
+```bash
+godot --headless --path game --editor --quit
+godot --headless --path game --script res://tests/native_bridge_smoke.gd
+godot --headless --path game --script res://tests/native_shadow_smoke.gd
+godot --headless --path game --script res://tests/native_modes_smoke.gd
+```
+
 ### 打开 Godot 工程
 
 ```bash
@@ -147,16 +175,32 @@ godot --path game --editor
 godot --headless --path game --quit-after 240
 godot --headless --path game --script res://tests/demo_smoke.gd
 godot --headless --path game --script res://tests/demo_benchmark.gd
+godot --headless --path game --script res://tests/combat_core_smoke.gd
+godot --headless --path game --script res://tests/combat_lab_smoke.gd
 ```
 
-当前启动场景会直接进入早期物理 Demo。GDExtension 尚未接入，因此 Demo 使用临时 GDScript 模拟器，不会加载 C++ 模拟。
+当前启动场景会直接进入枪感 Gate 1 的独立战斗实验场；原早期物理 Demo 保留在 `res://scenes/main.tscn`，可在实验场按 `Esc` 返回。Combat Lab 默认请求 `native_authoritative`：C++ 以 30 Hz 固定步决定幼种推进、寿命、目标/地形命中和事件顺序，Godot 只批量提交碰撞快照并消费状态与事件。`native_shadow` 保留差分诊断，`gdscript_fallback` 保留独立可运行的已验收路径；未构建 GDExtension 时自动回退，不产生双重伤害或反馈。
 
-操作：
+战斗实验场操作：
 
 - `A / D`：沿星体表面移动；
 - `W / Space`：跳跃；
 - `Shift`：朝光标方向推进，消耗核力；
-- `鼠标左键 / F`：发射当前星种；
+- `按住鼠标左键 / F`：连续发射高速幼年星种；
+- `R`：重置实验场、靶子和枪感指标；
+- `Esc`：返回原早期物理 Demo。
+
+实验场包含可射击墙面、静止靶、移动靶和七发击杀的普通敌人。场地是井星半径约 `10000 world px` 的局部表面切片，并不生成完整星球；玩家脚下碰撞面与画面下方约一万像素处的主坠核使用同一圆形几何，因此当前视野内重力近似平行。高速幼年星种仍受局部重力影响，弹道微粒与命中碎屑也会沿当前坠性下落；屏幕左上角显示实时射速、首发延迟、命中率与击杀数。本阶段只验证瞄准—开火—命中主干，不接入物质构筑。两条淡色竖线是 Gate 1 有限实验场边界，玩家中心限制在 `x=162..478`，为重力镜头的轻微旋转保留余量，保证 2× 镜头不会离开当前完整切片；它们不是井星的世界边缘，正式场景将使用区块流式加载扩展地表。
+
+Gate 1 弹道坠性由 [`game/resources/combat/basic_rifle.tres`](game/resources/combat/basic_rifle.tres) 中的 `projectile_gravity_scale` 调整；Combat Lab 的 `MaterialWorld.primary_gravity_acceleration` 表示地表重力 `g_surface`，当前为 `320 world px/s²`，`primary_surface_radius` 表示参考半径 `R`。主星球外部遵循平方反比 `g(r)=g_surface×(R/r)²`；内部使用连续的均匀球模型 `g(r)=g_surface×(r/R)`，因此核心为零重力，不产生奇点。忽略一屏范围内极小的重力变化，横跨可见世界宽度 `W` 的估算下坠量为 `drop = 0.5 × g_local × projectile_gravity_scale × (W / projectile_speed)²`。当前玩家接近地表，`g_local≈320`、`W=320`、速度 `1200`、倍率 `1.30`，约下坠 `14.8 world px`；弹道粒子使用相同倍率。拖尾粒子以每个物理步一粒、约每 `20 world px` 一粒的密度沿弹道补点，寿命固定为 `2.0 s`：前 `1.8 s` 亮度不变，最后 `0.2 s` 线性淡出。粒子以 `1 world px` 的方形点绘制并对齐同尺寸网格，初速度在弹速的 `10%～20%` 范围内随机且硬限制不超过 `20%`。粒子生成后在独立世界坐标中运动，具有至少 `1 world px` 的碰撞体积；碰撞时切向速度保持不变，法向速度反向衰减为四分之一，第二次碰撞后静止直至寿命结束。为控制持续拖尾的 CPU 成本，池容量限制为 `1024`，碰撞扫掠步长为 `1 world px`。
+
+高速幼种子弹使用由 `1 world px` 单元组成的像素图元，渲染位置对齐世界整数网格；物理位置、重力积分与扫掠碰撞仍保留亚像素精度，因此视觉量化不会改变弹道或命中。
+
+`MaterialWorld.add_gravity_source()` 创建的是有明确作用半径、半径内线性衰减的临时规则场，用于星种或人造装置；它不代表自然天体引力，也不采用平方反比。自然主重力与这些局部规则场会以向量相加。
+
+原物理 Demo 操作：
+
+- `鼠标左键 / F`：发射当前成熟星种；
 - `鼠标右键`：采掘岩石、砂和金属，补充物质储量；
 - `1 / 2 / 3`：切换引核星种、蒸汽矛和斥裂核；
 - `鼠标滚轮`：循环切换星种；
@@ -178,7 +222,7 @@ godot --headless --path game --script res://tests/demo_benchmark.gd
 - 禁止 Godot ↔ C++ 的逐像素调用。
 - 所有随机过程显式携带种子；模拟更新使用固定时间步。
 - `content/generated/` 只能由内容编译器生成，禁止手改。
-- 第三方依赖必须固定版本；`godot-cpp` 必须匹配 Godot 4.7 系列，不跟随浮动 `main`。
+- 第三方依赖必须固定版本；`godot-cpp` 固定为 `10.0.0-rc1`（Godot 4.6 API），不跟随浮动 `main`。
 - 大型二进制资源使用 Git LFS；`.godot/`、构建产物和本地缓存不提交。
 - 改变架构边界或存档兼容性的决策必须新增 ADR。
 

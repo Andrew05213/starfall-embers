@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CombatShotProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/shot_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+display_name = "高速铁砂幼种"
+fire_interval = 0.11
+projectile_speed = 1200.0
+projectile_lifetime = 0.55
+collision_radius = 1.4
+damage = 7.0
+hit_impulse = 22.0
+real_recoil = 0.65
+presentation_recoil = 2.4
+inherited_velocity_ratio = 0.12
+projectile_gravity_scale = 1.3
+color = Color(0.462745, 0.956863, 0.839216, 1)
+core_color = Color(0.937255, 1, 0.976471, 1)
