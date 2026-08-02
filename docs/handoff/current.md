@@ -44,10 +44,10 @@
 - [PR #10](https://github.com/Andrew05213/starfall-embers/pull/10) 已合并状态维护，merge commit
   为 `bb8953f`；它把 P0.3/P2 的 `todo.md`、`current.md` 对账带入最新 `main`。
 - [PR #11](https://github.com/Andrew05213/starfall-embers/pull/11) 为 Draft，base 为 `main`，
-  head 为 `bd3dace`（完整 SHA：`bd3dace85686f1f4c5e9597ae17bab88d846e85d`）；最新 PR 触发的
-  CI run `30759148158` 中 content、native-core、windows-native-bridge、godot-demo 均通过。
-  另一次同一 head 的 push 触发 run 仍显示旧的 Windows pending，不改变 PR #11 最新 run 的
-  4/4 通过结论；本 PR 保持 Draft，不转 Ready、不合并。
+  head 为 `ab15a1b`（完整 SHA：`ab15a1bf27a4584ca185c7914fd463c82a4cc9f0`），其中
+  `bd3dace` 是实现提交、`ab15a1b` 是状态对账提交；最终 head 的 workflow runs
+  `30759677847` 与 `30759676042` 均显示 content、native-core、windows-native-bridge、
+  godot-demo 4/4 通过。本 PR 保持 Draft，不转 Ready、不合并。
 
 ## 3. 本机 worktree
 
@@ -76,7 +76,7 @@
     `current.md` 与 `todo.md`，不得夹带代码、构建输出或素材。
 - `C:\tmp\starfall-p3-material-powder-20260803`
   - `codex/p3-material-powder`，从最新 `origin/main` `bb8953f` 建立；当前 head
-    `bd3dace`，只用于 P3 首批固定向下 `SAND↔AIR` 原生迁移、验证和 Draft PR #11，
+    `ab15a1b`（实现提交 `bd3dace` 加状态对账提交），只用于 P3 首批固定向下 `SAND↔AIR` 原生迁移、验证和 Draft PR #11，
     不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
@@ -187,7 +187,8 @@
 
 - Worktree `C:\tmp\starfall-p3-material-powder-20260803` 的分支为
   `codex/p3-material-powder`，从 `origin/main` `bb8953f` 建立；实现提交为
-  `bd3dace85686f1f4c5e9597ae17bab88d846e85d`，已推送到远端。
+  `bd3dace85686f1f4c5e9597ae17bab88d846e85d`，状态对账提交为
+  `ab15a1bf27a4584ca185c7914fd463c82a4cc9f0`，均已推送到远端。
 - ADR-0005 冻结本批所有权：C++ `World::step()` 只规范 `SAND↔AIR`，固定网格 `+Y`、32 位
   LCG、seed 派生 row-major 循环起点、每 tick moved 标记和五项候选顺序；越界与非 AIR
   封闭。ROCK、METAL、WATER、OIL、FIRE、SMOKE、LAVA、STEAM 保持静止；不改材质 ID、64×64
@@ -203,6 +204,7 @@
   `3.640/4.745/10.286 ms`，占比 `14.234%`。Release dirty chunks 平均/最大
   `152.973/165`，payload 平均/最大 `626578.773/675840` bytes；双宿主最终 checksum
   `7604899322391318841`，确定性重放 PASS，帧预算 PASS。
-- Draft PR #11（base `main`，head `bd3dace`）已创建；最新 CI run `30759148158` 的
-  `content`、`native-core`、`windows-native-bridge`、`godot-demo` 4/4 通过。P3 首批
+- Draft PR #11（base `main`，head `ab15a1b`）已创建；最终 head 的 runs `30759677847` 与
+  `30759676042` 中 `content`、`native-core`、`windows-native-bridge`、`godot-demo` 均 4/4
+  通过。P3 首批
   复选框仍未勾选，等待评审与合并；PR #7 保持独立处理。
