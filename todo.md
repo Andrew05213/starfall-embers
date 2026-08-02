@@ -1,13 +1,14 @@
 # 《坠星余烬》长期开发 TODO
 
-> Last revised: 2026-08-02
+> Last revised: 2026-08-03
 >
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
-> 最近一次路线图对账：PR #6、PR #5、PR #4、PR #8 与 PR #9 已合并并完成对应验收；
-> PR #9 已取代并关闭旧 PR #3，P0.3 与 P2 已完成。当前最早的未完成项仍是 P0.2 的
-> 萨迦候选 PR #7 收纳；其完成后再进入 P3 材质玩法权威迁移。
+> 最近一次路线图对账：PR #6、PR #5、PR #4、PR #8、PR #9 与 PR #10 已合并并完成对应验收；
+> PR #9 已取代并关闭旧 PR #3，P0.3 与 P2 已完成。P3 首批“固定向下 SAND↔AIR”已在
+> 独立 Draft PR #11 中实现并完成本地与远端验证，待评审合并后核销；PR #7 仍由独立工作线
+> 处理，不能与本批互相变基或混入。
 
 ## 使用规则
 
@@ -106,6 +107,15 @@
 ## P3 — M1：原生物质沙盒
 
 目标：把已验证的 GDScript 物质玩法迁移为确定、可扩展的 C++ 权威模拟。
+
+#### 首批固定向下 SAND↔AIR 原生迁移（2026-08-03）
+
+- [ ] 在不改材质编号、64×64 区块、DTO v1 或正式混合场景的前提下，将仅 `SAND↔AIR` 的
+      固定向下规则迁为 C++ 权威；ROCK、METAL 及其余材质在本批保持静止。
+- [ ] 完成固定 LCG/扫描顺序、moved 标记、边界与跨区块 dirty 测试，保留独立 GDScript
+      参考器逐 tick 对比 cells、random state、dirty batch 和 checksum。
+- [ ] 完成 1024²、300 tick benchmark，报告 dirty chunks、payload 和 30 Hz 帧预算；Draft
+      PR #11 尚未合并，以上复选框保持未勾选。
 
 - [ ] 首批材质编号继续覆盖 AIR、ROCK、SAND、WATER、OIL、FIRE、SMOKE、MOLTEN、
       STEAM、METAL，不在迁移期间随意重排。

@@ -1,6 +1,6 @@
 # 当前跨会话交接
 
-> Last verified: 2026-08-02
+> Last verified: 2026-08-03
 >
 > Repository: `Andrew05213/starfall-embers`
 >
@@ -21,7 +21,8 @@
 
 ## 2. GitHub 与分支关系
 
-- `main` 的最新实质功能 head 为 `fc22398`。
+- `main` 的最新 head 为 `bb8953f`（2026-08-03 由 `git ls-remote` 复核）；其中 `fc22398`
+  仍是 P0.3/P2 代码合并提交。
 - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
   为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
 - [PR #5](https://github.com/Andrew05213/starfall-embers/pull/5) 已变基并改指 `main`，确认保持
@@ -40,6 +41,13 @@
 - [PR #9](https://github.com/Andrew05213/starfall-embers/pull/9) 已在 8/8 checks 全绿、CLEAN
   且 MERGEABLE 后合并，merge commit 为 `fc22398`；它取代了已关闭的 PR #3，并完成
   P0.3/P2 的原生区块与批传输基线。
+- [PR #10](https://github.com/Andrew05213/starfall-embers/pull/10) 已合并状态维护，merge commit
+  为 `bb8953f`；它把 P0.3/P2 的 `todo.md`、`current.md` 对账带入最新 `main`。
+- [PR #11](https://github.com/Andrew05213/starfall-embers/pull/11) 为 Draft，base 为 `main`，
+  head 为 `bd3dace`（完整 SHA：`bd3dace85686f1f4c5e9597ae17bab88d846e85d`）；最新 PR 触发的
+  CI run `30759148158` 中 content、native-core、windows-native-bridge、godot-demo 均通过。
+  另一次同一 head 的 push 触发 run 仍显示旧的 Windows pending，不改变 PR #11 最新 run 的
+  4/4 通过结论；本 PR 保持 Draft，不转 Ready、不合并。
 
 ## 3. 本机 worktree
 
@@ -66,6 +74,10 @@
 - `C:\tmp\starfall-status-after-p2-20260802`
   - `codex/update-status-after-p2`，从合并 PR #9 后的 `main` `fc22398` 建立；只用于核销
     `current.md` 与 `todo.md`，不得夹带代码、构建输出或素材。
+- `C:\tmp\starfall-p3-material-powder-20260803`
+  - `codex/p3-material-powder`，从最新 `origin/main` `bb8953f` 建立；当前 head
+    `bd3dace`，只用于 P3 首批固定向下 `SAND↔AIR` 原生迁移、验证和 Draft PR #11，
+    不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
@@ -130,19 +142,20 @@
 
 ## 8. 后续顺序
 
-1. 合并本次纯 `current.md`/`todo.md` 核销，使 P0.3/P2 完成状态进入 `main`。
-2. 重新审查 PR #7 相对当前 `main` 的范围、LFS 指针和可合并性；必要时在隔离 worktree
-   变基，验证后再决定 Ready 与合并。
+1. 保持 PR #11 为 Draft，审查固定向下 `SAND↔AIR` 的所有权、跨区块 dirty、独立参考器和
+   benchmark 证据；合并前不勾选 `todo.md` 的 P3 首批复选框。
+2. PR #7 继续由独立工作线处理；重新审查其相对最新 `main` 的范围、LFS 指针和可合并性，
+   必要时仅在其 worktree 变基，不把 PR #11 或萨迦素材带入本分支。
 3. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
-4. 随后进入 P3，按固体、粉末、液体和气体逐类迁移材质玩法权威；每类保留 GDScript
-   参考模型、确定性重放和性能证据。
+4. PR #11 合并并完成验收后，才进入 P3 后续固体/液体/气体、反应、重力和激活调度；每类
+   继续保留 GDScript 参考模型、确定性重放和性能证据。
 5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
 
 - PR #4 已完成 Ready、合并与远端 `main` 复核；merge commit 为 `267b18b`。
-- PR #8 已合并并把状态维护带入 `main`；P0.3/P2 分支已从该合并提交建立，但尚未完成代码
-  移植或验收，因此 `todo.md` 中对应复选框保持未勾选。
+- PR #8、PR #9 和 PR #10 已依次把原生区块实现、验收与状态对账带入最新 `main`；P0.3/P2
+  的旧“尚未完成”描述仅保留作历史快照，当前复选框已按合并验收正式核销。
 - 主要工作区与萨迦 worktree 的受保护改动保持原状；本轮没有归一化、暂存或删除其中素材。
 - 普通沙箱内 `git status` 仍可能因共享 `.git\lfs\tmp` 的安全 ACL 失败；这不是素材损坏证据。
 
@@ -169,3 +182,27 @@
   与 P2 复选框可以正式核销。
 
 验证结果只说明对应提交和审计时点；代码、内容或构建环境变化后必须按 `AGENTS.md` 重新验证。
+
+## 11. P3 首批固定向下粉末迁移快照（2026-08-03）
+
+- Worktree `C:\tmp\starfall-p3-material-powder-20260803` 的分支为
+  `codex/p3-material-powder`，从 `origin/main` `bb8953f` 建立；实现提交为
+  `bd3dace85686f1f4c5e9597ae17bab88d846e85d`，已推送到远端。
+- ADR-0005 冻结本批所有权：C++ `World::step()` 只规范 `SAND↔AIR`，固定网格 `+Y`、32 位
+  LCG、seed 派生 row-major 循环起点、每 tick moved 标记和五项候选顺序；越界与非 AIR
+  封闭。ROCK、METAL、WATER、OIL、FIRE、SMOKE、LAVA、STEAM 保持静止；不改材质 ID、64×64
+  区块、DTO v1、GDExtension 批接口、正式混合场景或 P4 重力。
+- Native 测试覆盖垂直/双斜线/水平/阻塞/四边界、静止材质、x=63/64 与 y=63/64 跨区块、
+  dirty row-major、单 tick 不重复移动、seed 分歧和随机参考模型；Debug/Release CTest
+  均为 3/3。
+- Godot 4.7.1 headless import、11 个现有/新增 smoke（含独立 GDScript 逐 tick 对照）、
+  `demo_benchmark.gd` 和 Python Godot 合约检查均通过。参考器逐 tick 对比 cell bytes、dirty
+  DTO 和完整 16 位 checksum；Native 双 World 额外对比 random state。
+- 1024×1024、2,048 条初始化命令、300 个粉末 tick：Debug 平均/P95/最大为
+  `6.960/8.102/10.541 ms`，P95 占 33.333 ms 帧预算 `24.307%`；Release 为
+  `3.640/4.745/10.286 ms`，占比 `14.234%`。Release dirty chunks 平均/最大
+  `152.973/165`，payload 平均/最大 `626578.773/675840` bytes；双宿主最终 checksum
+  `7604899322391318841`，确定性重放 PASS，帧预算 PASS。
+- Draft PR #11（base `main`，head `bd3dace`）已创建；最新 CI run `30759148158` 的
+  `content`、`native-core`、`windows-native-bridge`、`godot-demo` 4/4 通过。P3 首批
+  复选框仍未勾选，等待评审与合并；PR #7 保持独立处理。
