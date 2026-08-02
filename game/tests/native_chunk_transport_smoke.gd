@@ -54,7 +54,8 @@ func _init() -> void:
 	assert(view.configure_world(70, 65))
 	assert(view.apply_dirty_chunk_batch(dirty))
 	assert(view.get_material_at_cell(1, 1) == 0)
-	assert(view.get_material_at_cell(68, 2) == 2)
+	assert(view.get_material_at_cell(68, 2) == 0)
+	assert(view.get_material_at_cell(68, 3) == 2)
 	assert(view.get_material_at_cell(69, 64) == 9)
 	var wrong_version_dirty := dirty.duplicate(true)
 	wrong_version_dirty["version"] = DTO_VERSION + 1

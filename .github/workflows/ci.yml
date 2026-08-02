@@ -203,6 +203,11 @@ jobs:
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_chunk_transport_smoke.gd
 
+      - name: Compare native powder with the GDScript reference model
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/native_powder_reference_smoke.gd
+
       - name: Compare GDScript and native projectile trajectories
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
