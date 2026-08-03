@@ -231,6 +231,7 @@
 - P4 第一核心 PR 尚未推送；下一步是补充/审查 native gravity 接口后推送 Draft PR，并在
   每个阶段完成后同步本文件与 `todo.md`。用户要求的最终 `gpt-5.6-sol xhigh` 只读 review
   在 P4 交付完成后执行；若发现 blocker，只记录，不在 review 后擅自修改。
+
 ## 13. P4 gravity core CI lifetime fix snapshot (2026-08-04)
 
 - Local fix commit `1301ec8`: bridge reset/configure now rebinds `BallisticSystem` to the host-owned `GravityField` instead of assigning a temporary `SimulationHost`; host and ballistics copy/move are disabled.
