@@ -109,8 +109,8 @@ class World final {
 public:
     explicit World(SimulationConfig config = {});
 
-    // Storage/transport foundation only. Material reactions and movement remain
-    // in the temporary Godot reference world until their own authority gates.
+    // Native authority for deterministic SAND-in-AIR movement only. Other
+    // material rules remain in the Godot reference world until their own gates.
     void step() noexcept;
 
     void validate_command_batch(const MaterialCommandBatchDto& batch) const;
@@ -136,6 +136,8 @@ private:
     [[nodiscard]] std::size_t cell_index(std::uint32_t x, std::uint32_t y) const noexcept;
     [[nodiscard]] std::size_t chunk_index(std::uint32_t chunk_x,
                                           std::uint32_t chunk_y) const noexcept;
+    [[nodiscard]] std::uint32_t next_random_u32() noexcept;
+    void simulate_powder() noexcept;
     void set_material(std::uint32_t x, std::uint32_t y, Material material);
     void paint_circle(const PaintCircleCommand& command);
     [[nodiscard]] ExtractionStats extract_circle(const ExtractCircleCommand& command);
@@ -144,6 +146,7 @@ private:
     std::uint32_t chunk_columns_ = 0;
     std::uint32_t chunk_rows_ = 0;
     std::vector<std::uint8_t> cells_;
+    std::vector<std::uint8_t> moved_cells_;
     std::vector<bool> dirty_chunks_;
     std::uint64_t tick_ = 0;
     std::uint64_t random_state_ = 0;

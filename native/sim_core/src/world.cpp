@@ -129,11 +129,78 @@ World::World(SimulationConfig config)
         throw std::invalid_argument("chunk dimensions exceed dirty storage limits");
     }
     cells_.assign(cell_count, static_cast<std::uint8_t>(config_.initial_material));
+    moved_cells_.assign(cell_count, 0);
     dirty_chunks_.assign(chunk_count, false);
 }
 
 void World::step() noexcept {
     ++tick_;
+    simulate_powder();
+}
+
+std::uint32_t World::next_random_u32() noexcept {
+    // Match the 32-bit unsigned LCG used by the GDScript reference model.
+    const auto state = static_cast<std::uint32_t>(random_state_);
+    const auto next = state * 1664525U + 1013904223U;
+    random_state_ = next;
+    return next;
+}
+
+void World::simulate_powder() noexcept {
+    std::fill(moved_cells_.begin(), moved_cells_.end(), 0);
+    if (cells_.empty()) {
+        return;
+    }
+
+    // A seed-derived rotation of canonical row-major order is still a fixed
+    // order for a given seed/tick and avoids unordered or chunk-dependent work.
+    const auto start = static_cast<std::size_t>(next_random_u32()) % cells_.size();
+    for (std::size_t offset = 0; offset < cells_.size(); ++offset) {
+        const auto index = (start + offset) % cells_.size();
+        if (moved_cells_[index] != 0
+            || cells_[index] != static_cast<std::uint8_t>(Material::sand)) {
+            continue;
+        }
+
+        const auto preferred_side = (next_random_u32() & 1U) == 0U ? 1 : -1;
+        const auto x = static_cast<std::int64_t>(index % config_.width);
+        const auto y = static_cast<std::int64_t>(index / config_.width);
+        const std::int64_t candidates[5][2]{
+            {0, 1},
+            {preferred_side, 1},
+            {-preferred_side, 1},
+            {preferred_side, 0},
+            {-preferred_side, 0},
+        };
+
+        for (const auto& candidate : candidates) {
+            const auto target_x = x + candidate[0];
+            const auto target_y = y + candidate[1];
+            if (target_x < 0 || target_y < 0
+                || target_x >= static_cast<std::int64_t>(config_.width)
+                || target_y >= static_cast<std::int64_t>(config_.height)) {
+                continue;
+            }
+
+            const auto target_index = static_cast<std::size_t>(target_y)
+                * config_.width + static_cast<std::size_t>(target_x);
+            if (cells_[target_index] != static_cast<std::uint8_t>(Material::air)) {
+                continue;
+            }
+
+            cells_[index] = static_cast<std::uint8_t>(Material::air);
+            cells_[target_index] = static_cast<std::uint8_t>(Material::sand);
+            moved_cells_[index] = 1;
+            moved_cells_[target_index] = 1;
+            dirty_chunks_[chunk_index(
+                static_cast<std::uint32_t>(x) / config_.chunk_size,
+                static_cast<std::uint32_t>(y) / config_.chunk_size)] = true;
+            dirty_chunks_[chunk_index(
+                static_cast<std::uint32_t>(target_x) / config_.chunk_size,
+                static_cast<std::uint32_t>(target_y) / config_.chunk_size)] = true;
+            break;
+        }
+    }
 }
 
 void World::validate_command_batch(const MaterialCommandBatchDto& batch) const {

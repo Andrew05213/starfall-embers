@@ -69,6 +69,58 @@ starfall::sim::MaterialCommandResultBatchDto submit(
     return world.submit_command_batch(batch);
 }
 
+std::uint32_t next_powder_random(std::uint64_t& state) {
+    const auto next = static_cast<std::uint32_t>(state) * 1664525U + 1013904223U;
+    state = next;
+    return next;
+}
+
+void simulate_powder_reference(std::vector<std::uint8_t>& cells,
+                               std::uint32_t width,
+                               std::uint32_t height,
+                               std::uint64_t& random_state) {
+    const auto air = static_cast<std::uint8_t>(Material::air);
+    const auto sand = static_cast<std::uint8_t>(Material::sand);
+    std::vector<std::uint8_t> moved(cells.size(), 0);
+    const auto start = static_cast<std::size_t>(next_powder_random(random_state)) % cells.size();
+    for (std::size_t offset = 0; offset < cells.size(); ++offset) {
+        const auto index = (start + offset) % cells.size();
+        if (moved[index] != 0 || cells[index] != sand) {
+            continue;
+        }
+
+        const auto preferred_side = (next_powder_random(random_state) & 1U) == 0U ? 1 : -1;
+        const auto x = static_cast<std::int64_t>(index % width);
+        const auto y = static_cast<std::int64_t>(index / width);
+        const std::int64_t candidates[5][2]{
+            {0, 1},
+            {preferred_side, 1},
+            {-preferred_side, 1},
+            {preferred_side, 0},
+            {-preferred_side, 0},
+        };
+        for (const auto& candidate : candidates) {
+            const auto target_x = x + candidate[0];
+            const auto target_y = y + candidate[1];
+            if (target_x < 0 || target_y < 0
+                || target_x >= static_cast<std::int64_t>(width)
+                || target_y >= static_cast<std::int64_t>(height)) {
+                continue;
+            }
+            const auto target_index = static_cast<std::size_t>(target_y) * width
+                + static_cast<std::size_t>(target_x);
+            if (cells[target_index] != air) {
+                continue;
+            }
+            cells[index] = air;
+            cells[target_index] = sand;
+            moved[index] = 1;
+            moved[target_index] = 1;
+            break;
+        }
+    }
+}
+
 void test_config_and_dto_validation() {
     require_throws<std::invalid_argument>(
         [] { World world({0, 1, 1, material_chunk_size, 0, Material::air}); },
@@ -138,12 +190,15 @@ void test_storage_snapshot_and_tick() {
     world.step();
     world.step();
     const auto snapshot = world.snapshot();
+    auto expected_random_state = world.config().seed;
+    (void)next_powder_random(expected_random_state);
+    (void)next_powder_random(expected_random_state);
     require(world.tick() == 2, "fixed step must advance tick exactly once");
     require(world.checksum() != initial_checksum, "tick must affect checksum");
     require(snapshot.version == material_transport_dto_version,
             "snapshot must carry the DTO version");
-    require(snapshot.tick == 2 && snapshot.random_state == world.config().seed,
-            "snapshot must include tick and explicit random state");
+    require(snapshot.tick == 2 && snapshot.random_state == expected_random_state,
+            "snapshot must include tick and advanced explicit random state");
     require(snapshot.cells == std::vector<std::uint8_t>(world.cells().begin(), world.cells().end()),
             "snapshot must preserve compact row-major cells");
 }
@@ -248,6 +303,8 @@ void test_deterministic_replay() {
         replay.step();
         require(first_results.results == replay_results.results,
                 "replay results must match frame by frame");
+        require(first.random_state() == replay.random_state(),
+                "same seed and commands must replay the random state");
         require(first.checksum() == replay.checksum(),
                 "same seed, command order, and ticks must replay deterministically");
     }
@@ -255,16 +312,164 @@ void test_deterministic_replay() {
             "deterministic replay must reproduce the complete world");
 }
 
+void test_powder_movement_and_boundaries() {
+    {
+        World world({30, 5, 6, material_chunk_size, 1, Material::air});
+        (void)submit(world, {PaintCircleCommand{2, 0, 0, Material::sand}});
+        world.step();
+        require(world.material_at(2, 0) == Material::air
+                && world.material_at(2, 1) == Material::sand,
+                "sand must fall vertically into air");
+    }
+
+    {
+        World world({30, 5, 6, material_chunk_size, 2, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{0, 0, 0, Material::sand},
+            PaintCircleCommand{0, 1, 0, Material::rock},
+            PaintCircleCommand{0, 2, 0, Material::rock},
+        });
+        world.step();
+        require(world.material_at(0, 0) == Material::air
+                && world.material_at(1, 1) == Material::sand,
+                "sand must use the only available down-diagonal at the left boundary");
+    }
+
+    {
+        World world({30, 5, 6, material_chunk_size, 3, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{2, 2, 0, Material::sand},
+            PaintCircleCommand{2, 3, 0, Material::rock},
+            PaintCircleCommand{1, 3, 0, Material::rock},
+            PaintCircleCommand{3, 3, 0, Material::rock},
+            PaintCircleCommand{3, 2, 0, Material::metal},
+        });
+        world.step();
+        require(world.material_at(2, 2) == Material::air
+                && world.material_at(1, 2) == Material::sand,
+                "sand must spread horizontally only after vertical candidates fail");
+    }
+
+    {
+        World world({30, 5, 6, material_chunk_size, 4, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{2, 2, 0, Material::sand},
+            PaintCircleCommand{2, 3, 0, Material::rock},
+            PaintCircleCommand{1, 3, 0, Material::rock},
+            PaintCircleCommand{3, 3, 0, Material::rock},
+            PaintCircleCommand{1, 2, 0, Material::rock},
+            PaintCircleCommand{3, 2, 0, Material::metal},
+        });
+        world.step();
+        require(world.material_at(2, 2) == Material::sand,
+                "sand must remain still when every candidate is blocked");
+    }
+
+    {
+        World world({30, 5, 6, material_chunk_size, 5, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{2, 4, 0, Material::sand},
+            PaintCircleCommand{2, 5, 0, Material::water},
+            PaintCircleCommand{1, 5, 0, Material::rock},
+            PaintCircleCommand{3, 5, 0, Material::metal},
+            PaintCircleCommand{1, 4, 0, Material::rock},
+            PaintCircleCommand{3, 4, 0, Material::rock},
+        });
+        world.step();
+        require(world.material_at(2, 4) == Material::sand
+                && world.material_at(2, 5) == Material::water,
+                "sand must not enter or displace a non-air material at a boundary");
+    }
+
+    {
+        World world({30, 8, 3, material_chunk_size, 6, Material::air});
+        const std::vector<Material> static_materials{
+            Material::rock, Material::water, Material::oil, Material::fire,
+            Material::smoke, Material::lava, Material::steam, Material::metal,
+        };
+        for (std::size_t x = 0; x < static_materials.size(); ++x) {
+            (void)submit(world, {PaintCircleCommand{
+                static_cast<std::int64_t>(x), 1, 0, static_materials[x],
+            }});
+        }
+        world.step();
+        for (std::size_t x = 0; x < static_materials.size(); ++x) {
+            require(world.material_at(static_cast<std::uint32_t>(x), 1)
+                        == static_materials[x],
+                    "non-migrated materials must remain static during powder steps");
+        }
+    }
+
+    {
+        World world({30, 5, 7, material_chunk_size, 6, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{2, 0, 0, Material::sand},
+            PaintCircleCommand{2, 2, 0, Material::sand},
+            PaintCircleCommand{2, 4, 0, Material::sand},
+        });
+        world.step();
+        require(world.material_at(2, 0) == Material::air
+                && world.material_at(2, 1) == Material::sand
+                && world.material_at(2, 2) == Material::air
+                && world.material_at(2, 3) == Material::sand
+                && world.material_at(2, 4) == Material::air
+                && world.material_at(2, 5) == Material::sand
+                && world.material_at(2, 6) == Material::air,
+                "a sand cell must move at most once per tick");
+    }
+}
+
+void test_powder_cross_chunk_dirty_transport() {
+    World world({30, 130, 130, material_chunk_size, 7, Material::air});
+    (void)submit(world, {
+        PaintCircleCommand{63, 62, 0, Material::sand},
+        PaintCircleCommand{63, 63, 0, Material::rock},
+        PaintCircleCommand{62, 63, 0, Material::rock},
+        PaintCircleCommand{62, 63, 0, Material::sand},
+    });
+    (void)world.consume_dirty_chunks();
+    world.step();
+    const auto dirty = world.consume_dirty_chunks();
+    require(world.material_at(63, 62) == Material::air
+            && world.material_at(64, 63) == Material::sand,
+            "powder must cross the x=63/64 chunk boundary");
+    require(world.material_at(62, 63) == Material::air
+            && world.material_at(62, 64) == Material::sand,
+            "powder must cross the y=63/64 chunk boundary");
+    require(dirty.chunks.size() == 3
+            && dirty.chunks[0].chunk_x == 0 && dirty.chunks[0].chunk_y == 0
+            && dirty.chunks[1].chunk_x == 1 && dirty.chunks[1].chunk_y == 0
+            && dirty.chunks[2].chunk_x == 0 && dirty.chunks[2].chunk_y == 1,
+            "powder movement must report stable row-major cross-chunk dirtiness");
+}
+
+void test_powder_seed_divergence() {
+    const auto run = [](std::uint64_t seed) {
+        World world({30, 5, 5, material_chunk_size, seed, Material::air});
+        (void)submit(world, {
+            PaintCircleCommand{2, 1, 0, Material::sand},
+            PaintCircleCommand{2, 2, 0, Material::rock},
+        });
+        world.step();
+        return std::vector<std::uint8_t>(world.cells().begin(), world.cells().end());
+    };
+    const auto first = run(1);
+    const auto second = run(2);
+    require(first != second, "different seeds must choose different symmetric powder branches");
+}
+
 void test_randomized_reference_model() {
     constexpr std::uint32_t width = 70;
     constexpr std::uint32_t height = 65;
     World world({30, width, height, material_chunk_size, 0x12345678ULL, Material::air});
     std::vector<std::uint8_t> reference(width * height, 0);
-    std::uint64_t random_state = 0x9e3779b97f4a7c15ULL;
+    std::uint64_t command_random_state = 0x9e3779b97f4a7c15ULL;
+    std::uint64_t powder_random_state = 0x12345678ULL;
 
-    auto next_random = [&random_state]() {
-        random_state = random_state * 6364136223846793005ULL + 1442695040888963407ULL;
-        return random_state;
+    auto next_random = [&command_random_state]() {
+        command_random_state = command_random_state * 6364136223846793005ULL
+            + 1442695040888963407ULL;
+        return command_random_state;
     };
     const auto inside = [](std::int64_t x, std::int64_t y,
                            std::int64_t center_x, std::int64_t center_y,
@@ -332,6 +537,7 @@ void test_randomized_reference_model() {
         require(extraction_index == expected_extractions.size(),
                 "random reference extraction result count must match");
         world.step();
+        simulate_powder_reference(reference, width, height, powder_random_state);
         require(std::vector<std::uint8_t>(world.cells().begin(), world.cells().end()) == reference,
                 "random reference cell state must match after every frame");
     }
@@ -345,6 +551,9 @@ int main() {
     test_circle_clipping_and_extraction();
     test_dirty_chunk_transport();
     test_deterministic_replay();
+    test_powder_movement_and_boundaries();
+    test_powder_cross_chunk_dirty_transport();
+    test_powder_seed_divergence();
     test_randomized_reference_model();
     std::cout << "world unit test passed\n";
     return 0;
