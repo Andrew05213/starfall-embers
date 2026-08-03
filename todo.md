@@ -233,3 +233,4 @@
 - 不让 GPU 承担首版权威物理，也不引入逐像素 Godot/C++ 调用。
 - 不规划多人联机；若未来提出，必须先做独立架构与确定性评估。
 P4 core CI ledger (2026-08-04): local lifecycle fix `1301ec8` is complete; Debug/Release CTest and the Godot contract check pass. PR #13 remains unchecked pending push and green Godot smoke plus Windows bridge CI.
+P4 核心合并对账（2026-08-04）：PR #13 已合并到 `main`（`2f5f0e1`），核心重力与生命周期修复验收完成。P4 的批桥接、shadow、角色/镜头权威切换、诊断和最终 benchmark 仍未完成；下一项从最新 main 开始 `codex/p4-gravity-shadow`。
