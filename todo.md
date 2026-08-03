@@ -138,11 +138,11 @@
 > `c98e641` 已通过 Debug CTest 4/4；完整 P4 尚未合并，因此以下复选框保持未勾选。
 
 - [x] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
-- [x] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
+- [ ] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口（终审发现正式运行时 Native 局部场链路未推进，暂缓确认）。
 - [x] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
 - [x] 增加重力向量、坠核影响范围和异常速度调试叠层；区块激活叠层保留到真实 P3 activation batch。
-- [x] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越。
-- [x] 用井星已验收移动/镜头用例建立原生与现有行为回归对比。
+- [ ] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越（终审确认当前仅有合成零重力测试，待补高速跨场采样）。
+- [ ] 用井星已验收移动/镜头用例建立原生与现有行为回归对比（正式 Native provider 链路 blocker 未解除）。
 
 验收门槛：玩家无需依赖文字即可判断局部下方；移动、瞄准和镜头在场切换处不抖动、不翻转
 失控。
@@ -240,3 +240,4 @@ P4 shadow 合并对账（2026-08-04）：PR #15 已合并到 `main`（`98177eb`�
 P4 角色/镜头合并对账（2026-08-04）：PR #17 已合并到 `main`（`606614f`），最终 head `f52e42e` 的 push 与 pull_request 两组 CI 均 8/8 通过。GravityFrame、零重力滞回、角色统一采样和镜头只读接入验收完成；诊断叠层、1024² 重力/粉末 benchmark、真实区块激活调度和最终 GPT-5.6-sol xhigh 只读复审仍未完成。
 P4 diagnostics 对账（2026-08-04）：`codex/p4-gravity-diagnostics` 从 `origin/main=d0bc415` 开始，实现提交 `268b15c`，Draft PR #19 已创建。已加入可选重力诊断叠层、native gravity bridge smoke、32 局部场/4096 查询/300 tick 的 1024² benchmark、批量确定性 CTest、高速弹体子步与采样上限指标，并明确 dirty chunks 不等于 activation scheduling。Python Godot 合约检查通过；本机因缺少 C++ 编译器无法运行 CMake/CTest，等待远端 CI。PR #19 未合并前保持 P4 diagnostics 与 benchmark 未勾选；真实区块激活调度和最终 GPT-5.6-sol xhigh 只读复审仍未完成。
 P4 diagnostics 合并对账（2026-08-04）：PR #19 已合并到 `main`（`176d7c7`），最终 head `ee9d189` 的 push 与 pull_request 两组 CI 均 8/8 通过。诊断叠层、bridge smoke、1024²/32 场/4096 查询/300 tick 重力 benchmark、高速弹体指标和 P3 dirty-chunk 统计已验收；真实区块激活调度仍未完成，最终 GPT-5.6-sol xhigh 只读复审待 P4 全部实现后执行。
+P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为 BLOCKED；不修改代码。P0 blocker：`game/scripts/demo/player_controller.gd` 创建的私有 Native host 在正式运行时没有 `step_fixed()`，而 `main.gd`/`starseed.gd` 仍只向 MaterialWorld 写局部场，导致 GDExtension 正式运行不推进 Native tick/TTL，局部重力行为回退。P1 blocker：角色只采当前位置，未将当前位置与预测位置放入同一批，`GravityFrame.transitioning` 只覆盖零重力滞回；高速跨场/双向边界验收不成立。P1 blocker：`native_gravity_provider.gd` 的径向 source ID 与 `add_uniform_source()` 的 request counter 不共享命名空间，可能重复 ID；常向量场也未写入 GDScript shadow。非阻断风险：诊断叠层无正式消费者、bridge 异常码细分不足、弹体 benchmark 仍为 1200 px/s（子步 2、上限命中 0）、current 顶部历史状态仍需后续清理。所有 blocker 保留，后续修复需另行授权。
