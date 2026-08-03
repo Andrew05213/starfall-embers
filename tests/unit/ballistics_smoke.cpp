@@ -320,6 +320,20 @@ void test_native_terrain_grid_hit_precedes_lifetime() {
     assert(hit.position.x >= 2.0 && hit.position.x < 3.0);
 }
 
+void test_high_speed_sampling_reports_limit_deterministically() {
+    auto system = flat_ballistics();
+    auto commands = flat_shot(777);
+    commands.spawns.front().velocity = {100'000.0, 0.0};
+    commands.spawns.front().lifetime_seconds = 1.0;
+    system.submit(std::move(commands));
+    system.step();
+
+    assert(system.states().projectiles.size() == 1);
+    const auto& state = system.states().projectiles.front();
+    assert(state.gravity_substeps == 32);
+    assert(state.gravity_sample_limit_reached);
+}
+
 } // namespace
 
 int main() {
@@ -334,5 +348,6 @@ int main() {
     test_impact_retirement_batch();
     test_native_entity_hit_is_authoritative_and_stable();
     test_native_terrain_grid_hit_precedes_lifetime();
+    test_high_speed_sampling_reports_limit_deterministically();
     return 0;
 }

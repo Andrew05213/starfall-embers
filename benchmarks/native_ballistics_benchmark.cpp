@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <iostream>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -13,6 +14,7 @@ int main() {
     constexpr std::size_t proxies = 4;
     constexpr std::uint64_t ticks = 120;
     constexpr std::uint64_t commands_per_tick = 256;
+    constexpr double frame_budget_ms = 1000.0 / 30.0;
 
     starfall::sim::SimulationHost host({
         .ticks_per_second = 30,
@@ -41,7 +43,13 @@ int main() {
     }
 
     std::size_t peak_active = 0;
-    const auto start = std::chrono::steady_clock::now();
+    std::size_t total_substeps = 0;
+    std::size_t peak_substeps = 0;
+    std::size_t sample_limit_hits = 0;
+    std::size_t sampled_projectiles = 0;
+    std::vector<double> tick_ms;
+    tick_ms.reserve(ticks);
+
     for (std::uint64_t tick = 0; tick < ticks; ++tick) {
         starfall::sim::ProjectileCommandBatch commands;
         commands.spawns.reserve(commands_per_tick);
@@ -57,13 +65,32 @@ int main() {
         }
         host.submit_collision_world(collision_world);
         host.submit_projectile_commands(std::move(commands));
+        const auto tick_start = std::chrono::steady_clock::now();
         host.step();
+        const auto tick_end = std::chrono::steady_clock::now();
         [[maybe_unused]] const auto events = host.drain_projectile_events();
         peak_active = std::max(peak_active, host.projectile_states().projectiles.size());
+        tick_ms.push_back(std::chrono::duration<double, std::milli>(
+            tick_end - tick_start
+        ).count());
+        for (const auto& projectile : host.projectile_states().projectiles) {
+            ++sampled_projectiles;
+            total_substeps += projectile.gravity_substeps;
+            peak_substeps = std::max<std::size_t>(peak_substeps, projectile.gravity_substeps);
+            if (projectile.gravity_sample_limit_reached) {
+                ++sample_limit_hits;
+            }
+        }
     }
-    const auto elapsed = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - start
-    ).count();
+
+    std::sort(tick_ms.begin(), tick_ms.end());
+    const auto p95_index = std::max<std::size_t>(
+        0, static_cast<std::size_t>(ticks * 95U / 100U) - 1);
+    const auto p95_ms = tick_ms[p95_index];
+    const auto max_ms = tick_ms.back();
+    const auto elapsed = std::accumulate(tick_ms.begin(), tick_ms.end(), 0.0);
+    const auto average_ms = elapsed / static_cast<double>(ticks);
+    const auto observed_projectiles = std::max<std::size_t>(1, sampled_projectiles);
 
     std::cout
         << "native ballistics benchmark: world=" << width << 'x' << height
@@ -73,7 +100,15 @@ int main() {
         << " commands=" << ticks * commands_per_tick
         << " peak_active=" << peak_active
         << " elapsed_ms=" << elapsed
-        << " ms_per_tick=" << elapsed / static_cast<double>(ticks)
+        << " tick_average_ms=" << average_ms
+        << " tick_p95_ms=" << p95_ms
+        << " tick_max_ms=" << max_ms
+        << " frame_budget_ms=" << frame_budget_ms
+        << " p95_budget_utilization=" << (p95_ms / frame_budget_ms * 100.0) << '%'
+        << " gravity_substeps_average="
+        << (static_cast<double>(total_substeps) / static_cast<double>(observed_projectiles))
+        << " gravity_substeps_peak=" << peak_substeps
+        << " gravity_sample_limit_hits=" << sample_limit_hits
         << '\n';
     return 0;
 }

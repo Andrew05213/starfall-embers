@@ -268,3 +268,11 @@
 - `GravityFrame` is now the single role/camera gravity-frame boundary with zero-gravity hysteresis and stable up/tangent selection. The camera remains presentation-only and the native provider falls back when the extension is unavailable.
 - The protected main worktree, PR #7, Saga assets, material DTO v1, P3 fixed `+Y` powder rule, formal scenes, and `game/project.godot` were not changed.
 - Next phase is the non-stacked diagnostics/acceptance worktree from `origin/main=606614f`; activation scheduling remains explicitly incomplete until a real P3 activation batch exists. The requested final read-only GPT-5.6-sol xhigh review remains pending until P4 diagnostics and acceptance are complete.
+
+## 19. P4 diagnostics/acceptance snapshot (2026-08-04)
+
+- Worktree `C:\tmp\starfall-p4-gravity-diagnostics-20260804`, branch `codex/p4-gravity-diagnostics`, starts from `origin/main=d0bc415` (PR #18 status merge); implementation commit is `268b15c`.
+- Draft PR #19 targets `main`. It adds the opt-in `GravityDiagnosticsOverlay`, `native_gravity_bridge_smoke.gd`, a 32-source/4096-query/300-tick 1024x1024 gravity benchmark, a large deterministic gravity CTest, high-speed projectile substep/limit reporting, and explicit dirty-chunk (not activation scheduling) labels in the P3 powder benchmark.
+- Python Godot contract check passes. Local CMake configure is blocked because this Windows host has no C++ compiler (`No CMAKE_CXX_COMPILER`); local Debug/Release CTest and native benchmarks therefore remain pending. Remote PR CI is the required compiler/Godot verification.
+- CI changes build and run the Release gravity, powder/chunk, and ballistics benchmarks plus the new bridge smoke. No hardware timing threshold is enforced; the benchmark reports the 30 Hz budget and P95 utilization.
+- No material DTO/P3 powder rule, formal scene, `game/project.godot`, PR #7, Saga assets, or protected main-worktree changes are included. Real activation scheduling and the final GPT-5.6-sol xhigh read-only review remain incomplete.

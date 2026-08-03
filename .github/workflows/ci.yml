@@ -46,6 +46,27 @@ jobs:
       - name: Validate Godot demo contracts
         run: python3 tests/integration/check_godot_demo.py
 
+      - name: Configure Release native benchmarks
+        run: >-
+          cmake -S . -B build/benchmarks -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DSTARFALL_BUILD_TESTS=OFF
+          -DSTARFALL_BUILD_BENCHMARKS=ON
+
+      - name: Build native benchmarks
+        run: >-
+          cmake --build build/benchmarks
+          --target starfall_native_gravity_benchmark
+          starfall_native_chunk_benchmark
+          starfall_native_ballistics_benchmark
+
+      - name: Run native gravity and material benchmarks
+        working-directory: build/benchmarks
+        run: |
+          ./benchmarks/starfall_native_gravity_benchmark
+          ./benchmarks/starfall_native_chunk_benchmark
+          ./benchmarks/starfall_native_ballistics_benchmark
+
 
   windows-native-bridge:
     runs-on: windows-2022
@@ -222,6 +243,11 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/gravity_shadow_smoke.gd
+
+      - name: Verify native gravity bridge and DTO diagnostics
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/native_gravity_bridge_smoke.gd
 
       - name: Verify gravity frame transitions
         run: >-
