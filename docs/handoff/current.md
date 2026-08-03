@@ -1,6 +1,6 @@
 # 当前跨会话交接
 
-> Last verified: 2026-08-03
+> Last verified: 2026-08-04
 >
 > Repository: `Andrew05213/starfall-embers`
 >
@@ -21,7 +21,7 @@
 
 ## 2. GitHub 与分支关系
 
-- `main` 的最新 head 为 `bb8953f`（2026-08-03 由 `git ls-remote` 复核）；其中 `fc22398`
+- `main` 的最新 head 为 `afa36c7`（2026-08-04 由 `git ls-remote` 复核）；其中 `fc22398`
   仍是 P0.3/P2 代码合并提交。
 - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
   为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
@@ -43,11 +43,9 @@
   P0.3/P2 的原生区块与批传输基线。
 - [PR #10](https://github.com/Andrew05213/starfall-embers/pull/10) 已合并状态维护，merge commit
   为 `bb8953f`；它把 P0.3/P2 的 `todo.md`、`current.md` 对账带入最新 `main`。
-- [PR #11](https://github.com/Andrew05213/starfall-embers/pull/11) 为 Draft，base 为 `main`，
-  head 为 `ab15a1b`（完整 SHA：`ab15a1bf27a4584ca185c7914fd463c82a4cc9f0`），其中
-  `bd3dace` 是实现提交、`ab15a1b` 是状态对账提交；最终 head 的 workflow runs
-  `30759677847` 与 `30759676042` 均显示 content、native-core、windows-native-bridge、
-  godot-demo 4/4 通过。本 PR 保持 Draft，不转 Ready、不合并。
+- [PR #11](https://github.com/Andrew05213/starfall-embers/pull/11) 已从 Draft 转为 Ready 并合并，
+  base 为 `main`，head 为 `727fd23`，merge commit 为 `afa36c7`；最终 head 的 content、
+  native-core、windows-native-bridge、godot-demo checks 全部通过。
 
 ## 3. 本机 worktree
 
@@ -75,9 +73,12 @@
   - `codex/update-status-after-p2`，从合并 PR #9 后的 `main` `fc22398` 建立；只用于核销
     `current.md` 与 `todo.md`，不得夹带代码、构建输出或素材。
 - `C:\tmp\starfall-p3-material-powder-20260803`
-  - `codex/p3-material-powder`，从最新 `origin/main` `bb8953f` 建立；当前 head
-    `ab15a1b`（实现提交 `bd3dace` 加状态对账提交），只用于 P3 首批固定向下 `SAND↔AIR` 原生迁移、验证和 Draft PR #11，
-    不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
+  - `codex/p3-material-powder`，从 `origin/main` `bb8953f` 建立；实现提交 `bd3dace`、状态
+    对账提交 `ab15a1b`，最终 head `727fd23`，对应 PR #11（已合并）。只用于 P3 首批固定向下
+    `SAND↔AIR` 原生迁移和验证，不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
+- `C:\tmp\starfall-status-after-p3-20260804`
+  - `codex/update-status-after-p3`，从 PR #11 merge commit `afa36c7` 建立；只用于核销 P3
+    首批和更新本交接，不夹带代码、构建输出或素材。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
@@ -142,13 +143,13 @@
 
 ## 8. 后续顺序
 
-1. 保持 PR #11 为 Draft，审查固定向下 `SAND↔AIR` 的所有权、跨区块 dirty、独立参考器和
-   benchmark 证据；合并前不勾选 `todo.md` 的 P3 首批复选框。
-2. PR #7 继续由独立工作线处理；重新审查其相对最新 `main` 的范围、LFS 指针和可合并性，
+1. 合并 PR #11 后核销 P3 首批三个 TODO，并把 merge commit `afa36c7` 写入 `main` 的交接状态。
+2. 从更新后的最新 `main` 建立 P4 原生重力 worktree；按“核心 → 批桥接/影子 → 角色/镜头 →
+   诊断/验收”四个非堆叠 Draft PR 依次推进。P4 不改变材质 DTO、P3 固定 `+Y` 粉末规则或正式
+   混合材质场景；每阶段保留 GDScript 参考和确定性回放。
+3. PR #7 继续由独立工作线处理；重新审查其相对最新 `main` 的范围、LFS 指针和可合并性，
    必要时仅在其 worktree 变基，不把 PR #11 或萨迦素材带入本分支。
-3. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
-4. PR #11 合并并完成验收后，才进入 P3 后续固体/液体/气体、反应、重力和激活调度；每类
-   继续保留 GDScript 参考模型、确定性重放和性能证据。
+4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
 5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
@@ -204,7 +205,6 @@
   `3.640/4.745/10.286 ms`，占比 `14.234%`。Release dirty chunks 平均/最大
   `152.973/165`，payload 平均/最大 `626578.773/675840` bytes；双宿主最终 checksum
   `7604899322391318841`，确定性重放 PASS，帧预算 PASS。
-- Draft PR #11（base `main`，head `ab15a1b`）已创建；最终 head 的 runs `30759677847` 与
-  `30759676042` 中 `content`、`native-core`、`windows-native-bridge`、`godot-demo` 均 4/4
-  通过。P3 首批
-  复选框仍未勾选，等待评审与合并；PR #7 保持独立处理。
+- PR #11（base `main`，head `727fd23`）已在最终 head 全部 CI 通过后由 Draft 转 Ready 并合并，
+  merge commit 为 `afa36c7`。P3 首批固定向下 `SAND↔AIR` 的三个 TODO 已达到“合并且验收”
+  门槛；PR #7 保持独立处理。
