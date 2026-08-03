@@ -50,6 +50,9 @@ var matter := 48.0
 var active := true
 
 var _material_world: Node
+var _gravity_provider: NativeGravityProvider
+var _gravity_host: Node
+var _gravity_frame := GravityFrame.new()
 var _up_direction := Vector2.UP
 var _tangent_direction := Vector2.RIGHT
 var _aim_direction := Vector2.RIGHT
@@ -65,6 +68,7 @@ var _last_state_signature := ""
 func _ready() -> void:
 	_resolve_material_world()
 	if is_instance_valid(_material_world):
+		_configure_default_gravity_provider()
 		_update_gravity_basis()
 		_resolve_initial_overlap()
 	# A reset is a discontinuity, not movement. Discard the previous physics
@@ -78,6 +82,7 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_material_world):
 		_resolve_material_world()
+		_configure_default_gravity_provider()
 		queue_redraw()
 		return
 
@@ -107,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	if jumped:
 		vertical_speed = jump_speed
 
-	var gravity := _get_gravity(global_position)
+	var gravity := _gravity_frame.acceleration
 	velocity = _tangent_direction * tangent_speed + _up_direction * vertical_speed
 	velocity += gravity * delta
 	_handle_boost(delta)
@@ -134,6 +139,7 @@ func reset_player(world_position: Vector2) -> void:
 	_fire_was_down = false
 	if not is_instance_valid(_material_world):
 		_resolve_material_world()
+		_configure_default_gravity_provider()
 	if is_instance_valid(_material_world):
 		_update_gravity_basis()
 		_resolve_initial_overlap()
@@ -194,6 +200,16 @@ func get_up_direction() -> Vector2:
 	return _up_direction
 
 
+func get_gravity_frame() -> GravityFrame:
+	return _gravity_frame
+
+
+func set_gravity_provider(provider: NativeGravityProvider) -> void:
+	_gravity_provider = provider
+	if is_instance_valid(_material_world):
+		_update_gravity_basis()
+
+
 func get_state() -> Dictionary:
 	return {
 		"health": health,
@@ -210,6 +226,7 @@ func get_state() -> Dictionary:
 
 func set_material_world(world: Node) -> void:
 	_material_world = world
+	_configure_default_gravity_provider()
 
 
 func _resolve_material_world() -> void:
@@ -221,11 +238,35 @@ func _resolve_material_world() -> void:
 			_material_world = parent.get_node_or_null("MaterialWorld")
 
 
+func _configure_default_gravity_provider() -> void:
+	if is_instance_valid(_gravity_provider) or not is_instance_valid(_material_world):
+		return
+	if not ClassDB.class_exists("StarfallSimulationHost"):
+		return
+	var host := StarfallSimulationHost.new()
+	if not host.configure_primary_gravity(
+		_material_world.primary_gravity_center,
+		_material_world.primary_surface_radius,
+		_material_world.primary_gravity_acceleration,
+		30,
+		0x51A7E11
+	):
+		host.free()
+		return
+	var provider := NativeGravityProvider.new()
+	provider.configure(_material_world, host)
+	provider.set_mode(NativeGravityProvider.MODE_NATIVE_AUTHORITATIVE)
+	_gravity_host = host
+	_gravity_provider = provider
+
+
 func _update_gravity_basis() -> void:
-	var gravity := _get_gravity(global_position)
-	if gravity.length_squared() > MIN_GRAVITY * MIN_GRAVITY:
-		_up_direction = -gravity.normalized()
-	_tangent_direction = Vector2(-_up_direction.y, _up_direction.x)
+	var sample := _sample_gravity(global_position)
+	_gravity_frame.update_from_sample(
+		sample, _up_direction, _tangent_direction, _gravity_frame.zero_gravity
+	)
+	_up_direction = _gravity_frame.up
+	_tangent_direction = _gravity_frame.tangent
 
 
 func _update_aim() -> void:
@@ -408,9 +449,21 @@ func _is_grounded() -> bool:
 
 
 func _get_gravity(world_position: Vector2) -> Vector2:
+	return _sample_gravity(world_position).get("acceleration", Vector2.ZERO) as Vector2
+
+
+func _sample_gravity(world_position: Vector2) -> Dictionary:
+	if is_instance_valid(_gravity_provider):
+		return _gravity_provider.sample(world_position)
 	if is_instance_valid(_material_world) and _material_world.has_method("get_gravity_at"):
-		return _material_world.call("get_gravity_at", world_position) as Vector2
-	return Vector2.DOWN * 120.0
+		var acceleration := _material_world.call("get_gravity_at", world_position) as Vector2
+		return {
+			"tick": 0,
+			"acceleration": acceleration,
+			"magnitude": acceleration.length(),
+			"dominant_source_id": 0,
+		}
+	return {"acceleration": Vector2.DOWN * 120.0, "magnitude": 120.0}
 
 
 func _is_solid(world_position: Vector2) -> bool:

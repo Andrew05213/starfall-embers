@@ -70,7 +70,11 @@ func _snap_to_target() -> void:
 
 func _calculate_desired_rotation() -> float:
 	var up_direction := Vector2.UP
-	if _target.has_method("get_up_direction"):
+	if _target.has_method("get_gravity_frame"):
+		var frame := _target.call("get_gravity_frame") as GravityFrame
+		if frame != null:
+			up_direction = frame.up
+	elif _target.has_method("get_up_direction"):
 		up_direction = _target.call("get_up_direction") as Vector2
 	if up_direction.length_squared() <= 0.000001:
 		return _desired_rotation
