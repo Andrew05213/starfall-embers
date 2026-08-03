@@ -1,6 +1,8 @@
 #include "starfall/sim/simulation_host.hpp"
 
+#include <cmath>
 #include <iterator>
+#include <stdexcept>
 #include <utility>
 
 namespace starfall::sim {
@@ -51,12 +53,16 @@ void SimulationHost::submit_projectile_commands(ProjectileCommandBatch commands)
 }
 
 void SimulationHost::submit_gravity_source_commands(GravitySourceCommandBatch commands) {
-    gravity_field_.validate_command_batch(commands);
-    pending_gravity_source_commands_.commands.insert(
-        pending_gravity_source_commands_.commands.end(),
+    GravitySourceCommandBatch candidate = pending_gravity_source_commands_;
+    candidate.commands.insert(
+        candidate.commands.end(),
         std::make_move_iterator(commands.commands.begin()),
         std::make_move_iterator(commands.commands.end())
     );
+    candidate.version = commands.version;
+    GravityField trial = gravity_field_;
+    trial.apply(candidate);
+    pending_gravity_source_commands_ = std::move(candidate);
 }
 
 void SimulationHost::submit_material_commands(MaterialCommandBatchDto commands) {
@@ -177,6 +183,30 @@ std::uint64_t SimulationHost::gravity_checksum() const noexcept {
 
 const GravityField& SimulationHost::gravity_field() const noexcept {
     return gravity_field_;
+}
+
+GravityQueryResultBatch SimulationHost::sample_gravity_queries(
+    GravityQueryBatch queries
+) const {
+    if (queries.version != gravity_transport_dto_version) {
+        throw std::invalid_argument("unsupported gravity query DTO version");
+    }
+    GravityQueryResultBatch results;
+    results.tick = tick();
+    results.results.reserve(queries.queries.size());
+    for (const auto& query : queries.queries) {
+        if (query.request_id == 0
+            || !std::isfinite(query.position.x)
+            || !std::isfinite(query.position.y)) {
+            throw std::invalid_argument("invalid gravity query");
+        }
+        results.results.push_back({
+            .request_id = query.request_id,
+            .tick = results.tick,
+            .sample = gravity_field_.sample(query.position),
+        });
+    }
+    return results;
 }
 
 const World& SimulationHost::material_world() const noexcept {

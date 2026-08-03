@@ -53,10 +53,54 @@ struct GravitySourceCommandBatch final {
     std::vector<GravitySourceCommand> commands;
 };
 
+enum class GravitySourceCommandResultCode : std::uint8_t {
+    accepted = 0,
+    invalid = 1,
+    duplicate = 2,
+    not_found = 3,
+};
+
+struct GravitySourceCommandResult final {
+    std::uint64_t request_id = 0;
+    GravitySourceCommandResultCode code = GravitySourceCommandResultCode::invalid;
+    GravitySourceId source_id = 0;
+};
+
+struct GravitySourceCommandResultBatch final {
+    std::uint32_t version = gravity_transport_dto_version;
+    std::uint64_t tick = 0;
+    std::vector<GravitySourceCommandResult> results;
+};
+
 struct GravitySample final {
     Vec2 acceleration{};
     double magnitude = 0.0;
     GravitySourceId dominant_source_id = 0;
+    bool zero_gravity = true;
+    bool transitioning = false;
+    bool sample_limit_reached = false;
+};
+
+struct GravityQuery final {
+    std::uint64_t request_id = 0;
+    Vec2 position{};
+};
+
+struct GravityQueryBatch final {
+    std::uint32_t version = gravity_transport_dto_version;
+    std::vector<GravityQuery> queries;
+};
+
+struct GravityQueryResult final {
+    std::uint64_t request_id = 0;
+    std::uint64_t tick = 0;
+    GravitySample sample{};
+};
+
+struct GravityQueryResultBatch final {
+    std::uint32_t version = gravity_transport_dto_version;
+    std::uint64_t tick = 0;
+    std::vector<GravityQueryResult> results;
 };
 
 /// Engine-independent gravity authority for native entities. MaterialWorld

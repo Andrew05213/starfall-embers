@@ -58,6 +58,25 @@ public:
         const godot::PackedInt32Array& reasons
     );
     [[nodiscard]] std::int64_t get_material_transport_version() const noexcept;
+    [[nodiscard]] std::int64_t get_gravity_transport_version() const noexcept;
+    bool submit_gravity_source_commands(
+        std::int64_t dto_version,
+        const godot::PackedInt32Array& command_kinds,
+        const godot::PackedInt32Array& field_kinds,
+        const godot::PackedInt64Array& request_ids,
+        const godot::PackedInt64Array& source_ids,
+        const godot::PackedVector2Array& centers,
+        const godot::PackedVector2Array& vectors,
+        const godot::PackedFloat64Array& strengths,
+        const godot::PackedFloat64Array& radii,
+        const godot::PackedInt64Array& expires_at_ticks
+    );
+    [[nodiscard]] godot::Dictionary drain_gravity_source_command_result_batch();
+    [[nodiscard]] godot::Dictionary sample_gravity_batch(
+        std::int64_t dto_version,
+        const godot::PackedInt64Array& request_ids,
+        const godot::PackedVector2Array& positions
+    ) const;
     bool configure_material_world(
         std::int64_t width,
         std::int64_t height,
@@ -83,12 +102,14 @@ public:
     [[nodiscard]] godot::Dictionary drain_material_command_result_batch();
     [[nodiscard]] godot::Dictionary drain_dirty_chunk_batch();
     [[nodiscard]] godot::String get_material_checksum_hex() const;
+    [[nodiscard]] godot::String get_gravity_checksum_hex() const;
 
 protected:
     static void _bind_methods();
 
 private:
     starfall::sim::SimulationHost host_{};
+    starfall::sim::GravitySourceCommandResultBatch gravity_command_results_{};
 };
 
 } // namespace starfall::godot_bridge

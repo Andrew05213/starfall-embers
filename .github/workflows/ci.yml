@@ -217,3 +217,8 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/native_modes_smoke.gd
+
+      - name: Verify native gravity shadow transport
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/gravity_shadow_smoke.gd
