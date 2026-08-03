@@ -13,6 +13,8 @@ namespace {
 constexpr double distance_epsilon = 1.0e-9;
 constexpr double hit_epsilon = 1.0e-6;
 constexpr double terrain_sample_step = 0.8;
+constexpr double gravity_sample_step = 32.0;
+constexpr std::uint32_t max_gravity_substeps = 32;
 constexpr std::uint8_t material_mask = 0x0f;
 
 [[nodiscard]] bool is_finite(Vec2 value) noexcept {
@@ -229,51 +231,29 @@ struct CollisionHit final {
 
 } // namespace
 
-double PrimaryGravity::magnitude_at_distance(double distance) const noexcept {
-    if (!std::isfinite(distance)
-        || !std::isfinite(surface_radius)
-        || !std::isfinite(surface_acceleration)
-        || surface_radius <= 0.0
-        || surface_acceleration <= 0.0) {
-        return 0.0;
-    }
-
-    const double radial_distance = std::abs(distance);
-    if (radial_distance <= surface_radius) {
-        return surface_acceleration * radial_distance / surface_radius;
-    }
-    const double radius_ratio = surface_radius / radial_distance;
-    return surface_acceleration * radius_ratio * radius_ratio;
-}
-
-Vec2 PrimaryGravity::acceleration_at(Vec2 position) const noexcept {
-    if (!is_finite(position) || !is_finite(center)) {
-        return {};
-    }
-    const Vec2 delta = center - position;
-    const double distance_squared = delta.x * delta.x + delta.y * delta.y;
-    if (distance_squared <= distance_epsilon * distance_epsilon) {
-        return {};
-    }
-    const double distance = std::sqrt(distance_squared);
-    const double magnitude = magnitude_at_distance(distance);
-    return delta * (magnitude / distance);
-}
-
 BallisticSystem::BallisticSystem(
     std::uint32_t ticks_per_second,
     PrimaryGravity gravity
 ) : ticks_per_second_(ticks_per_second),
-    gravity_(gravity) {
+    gravity_storage_(ticks_per_second, gravity),
+    gravity_field_(&gravity_storage_) {
     if (ticks_per_second_ == 0) {
         throw std::invalid_argument("ticks_per_second must be greater than zero");
     }
-    if (!is_finite(gravity_.center)
-        || !std::isfinite(gravity_.surface_radius)
-        || gravity_.surface_radius <= 0.0
-        || !std::isfinite(gravity_.surface_acceleration)
-        || gravity_.surface_acceleration < 0.0) {
-        throw std::invalid_argument("primary gravity configuration is invalid");
+    fixed_step_seconds_ = 1.0 / static_cast<double>(ticks_per_second_);
+    rebuild_state_batch();
+}
+
+BallisticSystem::BallisticSystem(
+    std::uint32_t ticks_per_second,
+    GravityField* gravity_field
+) : ticks_per_second_(ticks_per_second),
+    gravity_field_(gravity_field) {
+    if (ticks_per_second_ == 0 || gravity_field_ == nullptr) {
+        throw std::invalid_argument("ballistic gravity field configuration is invalid");
+    }
+    if (gravity_field_->ticks_per_second() != ticks_per_second_) {
+        throw std::invalid_argument("ballistic and gravity tick rates must match");
     }
     fixed_step_seconds_ = 1.0 / static_cast<double>(ticks_per_second_);
     rebuild_state_batch();
@@ -292,6 +272,7 @@ void BallisticSystem::set_collision_world(CollisionWorldSnapshot snapshot) {
 
 void BallisticSystem::step() {
     ++tick_;
+    gravity_field_->advance_tick();
     event_batch_.tick = tick_;
     event_batch_.events.clear();
 
@@ -315,7 +296,11 @@ std::uint64_t BallisticSystem::tick() const noexcept {
 }
 
 const PrimaryGravity& BallisticSystem::gravity() const noexcept {
-    return gravity_;
+    return gravity_field_->primary();
+}
+
+const GravityField& BallisticSystem::gravity_field() const noexcept {
+    return *gravity_field_;
 }
 
 const ProjectileStateBatch& BallisticSystem::states() const noexcept {
@@ -393,40 +378,61 @@ void BallisticSystem::integrate_projectiles() {
         const double remaining_lifetime = projectile->lifetime_seconds - projectile->age_seconds;
         const double step_time = std::min(fixed_step_seconds_, std::max(remaining_lifetime, 0.0));
         projectile->previous_position = projectile->position;
+        projectile->gravity_substeps = 0;
+        projectile->gravity_sample_limit_reached = false;
         if (step_time > 0.0) {
-            const Vec2 from = projectile->position;
-            const Vec2 acceleration = gravity_.acceleration_at(projectile->position)
-                * projectile->gravity_scale;
-            const Vec2 to = projectile->position + projectile->velocity * step_time
-                + acceleration * (0.5 * step_time * step_time);
-            const auto hit = find_earliest_hit(
-                from,
-                to,
-                projectile->collision_radius,
-                collision_world_
+            const double travel_distance = std::sqrt(
+                projectile->velocity.x * projectile->velocity.x
+                + projectile->velocity.y * projectile->velocity.y
+            ) * step_time;
+            const auto requested_substeps = std::max<std::uint32_t>(
+                1,
+                static_cast<std::uint32_t>(std::ceil(travel_distance / gravity_sample_step))
             );
-            if (std::isfinite(hit.fraction)) {
-                const double fraction = std::clamp(hit.fraction, 0.0, 1.0);
-                projectile->position = from + (to - from) * fraction;
-                projectile->velocity += acceleration * (step_time * fraction);
-                projectile->age_seconds += step_time * fraction;
-                event_batch_.events.push_back({
-                    .kind = hit.terrain
-                        ? ProjectileEventKind::hit_terrain
-                        : ProjectileEventKind::hit_entity,
-                    .projectile_id = projectile->projectile_id,
-                    .request_id = projectile->request_id,
-                    .tick = tick_,
-                    .collider_id = hit.collider_id,
-                    .position = projectile->position,
-                    .velocity = projectile->velocity,
-                });
-                projectile = active_projectiles_.erase(projectile);
+            const auto substeps = std::min(requested_substeps, max_gravity_substeps);
+            projectile->gravity_substeps = substeps;
+            projectile->gravity_sample_limit_reached = requested_substeps > max_gravity_substeps;
+            const double substep_time = step_time / static_cast<double>(substeps);
+            bool retired = false;
+            for (std::uint32_t substep = 0; substep < substeps; ++substep) {
+                const Vec2 from = projectile->position;
+                const Vec2 acceleration = gravity_field_->sample(projectile->position).acceleration
+                    * projectile->gravity_scale;
+                const Vec2 to = projectile->position + projectile->velocity * substep_time
+                    + acceleration * (0.5 * substep_time * substep_time);
+                const auto hit = find_earliest_hit(
+                    from,
+                    to,
+                    projectile->collision_radius,
+                    collision_world_
+                );
+                if (std::isfinite(hit.fraction)) {
+                    const double fraction = std::clamp(hit.fraction, 0.0, 1.0);
+                    projectile->position = from + (to - from) * fraction;
+                    projectile->velocity += acceleration * (substep_time * fraction);
+                    projectile->age_seconds += substep_time * fraction;
+                    event_batch_.events.push_back({
+                        .kind = hit.terrain
+                            ? ProjectileEventKind::hit_terrain
+                            : ProjectileEventKind::hit_entity,
+                        .projectile_id = projectile->projectile_id,
+                        .request_id = projectile->request_id,
+                        .tick = tick_,
+                        .collider_id = hit.collider_id,
+                        .position = projectile->position,
+                        .velocity = projectile->velocity,
+                    });
+                    projectile = active_projectiles_.erase(projectile);
+                    retired = true;
+                    break;
+                }
+                projectile->position = to;
+                projectile->velocity += acceleration * substep_time;
+                projectile->age_seconds += substep_time;
+            }
+            if (retired) {
                 continue;
             }
-            projectile->position = to;
-            projectile->velocity += acceleration * step_time;
-            projectile->age_seconds += step_time;
         }
 
         if (projectile->age_seconds + std::numeric_limits<double>::epsilon()

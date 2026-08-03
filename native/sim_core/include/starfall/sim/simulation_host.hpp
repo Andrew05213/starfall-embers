@@ -27,6 +27,7 @@ public:
     explicit SimulationHost(SimulationHostConfig config = {});
 
     void submit_projectile_commands(ProjectileCommandBatch commands);
+    void submit_gravity_source_commands(GravitySourceCommandBatch commands);
     void submit_material_commands(MaterialCommandBatchDto commands);
     void submit_collision_world(CollisionWorldSnapshot snapshot);
     void step();
@@ -35,6 +36,7 @@ public:
     [[nodiscard]] std::uint64_t tick() const noexcept;
     [[nodiscard]] double fixed_step_seconds() const noexcept;
     [[nodiscard]] std::size_t pending_projectile_command_count() const noexcept;
+    [[nodiscard]] std::size_t pending_gravity_source_command_count() const noexcept;
     [[nodiscard]] std::size_t pending_material_command_count() const noexcept;
     [[nodiscard]] const ProjectileStateBatch& projectile_states() const noexcept;
     /// Events accumulate across fixed steps until explicitly drained. This is
@@ -45,13 +47,17 @@ public:
     [[nodiscard]] MaterialCommandResultBatchDto drain_material_command_results();
     [[nodiscard]] DirtyChunkBatchDto drain_dirty_chunks();
     [[nodiscard]] std::uint64_t material_checksum() const noexcept;
+    [[nodiscard]] std::uint64_t gravity_checksum() const noexcept;
+    [[nodiscard]] const GravityField& gravity_field() const noexcept;
     [[nodiscard]] const World& material_world() const noexcept;
 
 private:
     SimulationHostConfig config_{};
+    GravityField gravity_field_{};
     BallisticSystem ballistics_{};
     World material_world_{};
     ProjectileCommandBatch pending_projectile_commands_{};
+    GravitySourceCommandBatch pending_gravity_source_commands_{};
     ProjectileEventBatch pending_projectile_events_{};
     MaterialCommandBatchDto pending_material_commands_{};
     MaterialCommandResultBatchDto pending_material_results_{};
