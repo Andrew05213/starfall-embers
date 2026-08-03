@@ -137,12 +137,12 @@
 > P4 已启动。核心 worktree 为 `C:\tmp\starfall-p4-native-gravity-20260804`，实现提交
 > `c98e641` 已通过 Debug CTest 4/4；完整 P4 尚未合并，因此以下复选框保持未勾选。
 
-- [ ] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
-- [ ] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
-- [ ] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
+- [x] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
+- [x] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
+- [x] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
 - [ ] 增加重力向量、坠核影响范围、区块激活和异常速度调试叠层。
-- [ ] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越。
-- [ ] 用井星已验收移动/镜头用例建立原生与现有行为回归对比。
+- [x] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越。
+- [x] 用井星已验收移动/镜头用例建立原生与现有行为回归对比。
 
 验收门槛：玩家无需依赖文字即可判断局部下方；移动、瞄准和镜头在场切换处不抖动、不翻转
 失控。
@@ -237,3 +237,4 @@ P4 核心合并对账（2026-08-04）：PR #13 已合并到 `main`（`2f5f0e1`�
 P4 shadow 对账（2026-08-04）：`39cd1c5` 已完成批量 native gravity source/query DTO、GDExtension bridge、fallback/shadow/authoritative provider 和独立 smoke；本地 CTest 4/4、bridge Debug 编译、Godot 合约检查通过。待推送 Draft PR 后完成 Godot 4.7.1 headless smoke、完整 CI 和 shadow 误差验收；角色/镜头、诊断、benchmark 仍未完成。
 P4 角色/镜头对账（2026-08-04）：`eb58c1b` 已完成 `GravityFrame`、零重力滞回、角色统一采样和镜头只读接入，并加入 transition smoke；静态合约检查通过，待 Draft PR CI 验收。诊断叠层与 benchmark 仍未完成。
 P4 shadow 合并对账（2026-08-04）：PR #15 已合并到 `main`（`98177eb`），批桥接与 shadow smoke 验收完成。下一项为 `codex/p4-player-camera-gravity` 的 GravityFrame/角色/镜头权威切换；诊断叠层和 benchmark 仍未完成。
+P4 角色/镜头合并对账（2026-08-04）：PR #17 已合并到 `main`（`606614f`），最终 head `f52e42e` 的 push 与 pull_request 两组 CI 均 8/8 通过。GravityFrame、零重力滞回、角色统一采样和镜头只读接入验收完成；诊断叠层、1024² 重力/粉末 benchmark、真实区块激活调度和最终 GPT-5.6-sol xhigh 只读复审仍未完成。

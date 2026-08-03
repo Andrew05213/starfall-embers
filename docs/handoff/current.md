@@ -260,3 +260,11 @@
 - Added `GravityFrame` with zero-gravity hysteresis (`0.001`/`0.002`), stable up/tangent selection, and one frame consumed by player movement and `GravityFollowCamera`; native provider defaults to authoritative when the extension is available and falls back cleanly otherwise.
 - Added `gravity_transition_smoke.gd` to CI. Static Godot contract check passes; headless Godot 4.7.1, full smoke, bridge, and role/camera transition CI remain pending until Draft PR publication.
 - Camera remains presentation-only and reads `GravityFrame.up`; no material DTO, P3 powder rule, formal scene, PR #7, Saga asset, or protected main-worktree change is included.
+
+## 18. P4 GravityFrame role/camera merge status (2026-08-04)
+
+- PR #17 `codex/p4-player-camera-gravity` was promoted from Draft and merged into `main`; merge commit is `606614f2dd55969f0aeee1a656a1b6e15c770b91`.
+- Final head `f52e42e739f21bebc6f682cbf74e114cece3679` passed both push and pull-request CI workflows, 8/8 checks each: content, native-core, Godot demo, and Windows native bridge.
+- `GravityFrame` is now the single role/camera gravity-frame boundary with zero-gravity hysteresis and stable up/tangent selection. The camera remains presentation-only and the native provider falls back when the extension is unavailable.
+- The protected main worktree, PR #7, Saga assets, material DTO v1, P3 fixed `+Y` powder rule, formal scenes, and `game/project.godot` were not changed.
+- Next phase is the non-stacked diagnostics/acceptance worktree from `origin/main=606614f`; activation scheduling remains explicitly incomplete until a real P3 activation batch exists. The requested final read-only GPT-5.6-sol xhigh review remains pending until P4 diagnostics and acceptance are complete.
