@@ -243,6 +243,7 @@ GravitySample GravityField::sample(Vec2 position) const noexcept {
         }
     }
     result.magnitude = std::sqrt(length_squared(result.acceleration));
+    result.zero_gravity = result.magnitude <= 0.001;
     return result;
 }
 

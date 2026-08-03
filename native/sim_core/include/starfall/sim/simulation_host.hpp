@@ -56,6 +56,9 @@ public:
     [[nodiscard]] std::uint64_t material_checksum() const noexcept;
     [[nodiscard]] std::uint64_t gravity_checksum() const noexcept;
     [[nodiscard]] const GravityField& gravity_field() const noexcept;
+    [[nodiscard]] GravityQueryResultBatch sample_gravity_queries(
+        GravityQueryBatch queries
+    ) const;
     [[nodiscard]] const World& material_world() const noexcept;
 
 private:

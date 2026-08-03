@@ -91,6 +91,34 @@ void StarfallSimulationHost::_bind_methods() {
         &StarfallSimulationHost::get_material_transport_version
     );
     godot::ClassDB::bind_method(
+        godot::D_METHOD("get_gravity_transport_version"),
+        &StarfallSimulationHost::get_gravity_transport_version
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD(
+            "submit_gravity_source_commands",
+            "dto_version",
+            "command_kinds",
+            "field_kinds",
+            "request_ids",
+            "source_ids",
+            "centers",
+            "vectors",
+            "strengths",
+            "radii",
+            "expires_at_ticks"
+        ),
+        &StarfallSimulationHost::submit_gravity_source_commands
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("drain_gravity_source_command_result_batch"),
+        &StarfallSimulationHost::drain_gravity_source_command_result_batch
+    );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("sample_gravity_batch", "dto_version", "request_ids", "positions"),
+        &StarfallSimulationHost::sample_gravity_batch
+    );
+    godot::ClassDB::bind_method(
         godot::D_METHOD(
             "configure_material_world",
             "width",
@@ -148,10 +176,15 @@ void StarfallSimulationHost::_bind_methods() {
         godot::D_METHOD("get_material_checksum_hex"),
         &StarfallSimulationHost::get_material_checksum_hex
     );
+    godot::ClassDB::bind_method(
+        godot::D_METHOD("get_gravity_checksum_hex"),
+        &StarfallSimulationHost::get_gravity_checksum_hex
+    );
 }
 
 void StarfallSimulationHost::reset_to_gate1_baseline() {
     host_.reset();
+    gravity_command_results_ = {};
 }
 
 bool StarfallSimulationHost::configure_primary_gravity(
@@ -179,6 +212,7 @@ bool StarfallSimulationHost::configure_primary_gravity(
         .surface_acceleration = surface_acceleration,
     };
     host_.reset(config);
+    gravity_command_results_ = {};
     return true;
 }
 
@@ -244,6 +278,175 @@ std::int64_t StarfallSimulationHost::get_material_transport_version() const noex
     return starfall::sim::material_transport_dto_version;
 }
 
+std::int64_t StarfallSimulationHost::get_gravity_transport_version() const noexcept {
+    return starfall::sim::gravity_transport_dto_version;
+}
+
+bool StarfallSimulationHost::submit_gravity_source_commands(
+    std::int64_t dto_version,
+    const godot::PackedInt32Array& command_kinds,
+    const godot::PackedInt32Array& field_kinds,
+    const godot::PackedInt64Array& request_ids,
+    const godot::PackedInt64Array& source_ids,
+    const godot::PackedVector2Array& centers,
+    const godot::PackedVector2Array& vectors,
+    const godot::PackedFloat64Array& strengths,
+    const godot::PackedFloat64Array& radii,
+    const godot::PackedInt64Array& expires_at_ticks
+) {
+    const auto count = command_kinds.size();
+    if (dto_version != starfall::sim::gravity_transport_dto_version
+        || field_kinds.size() != count || request_ids.size() != count
+        || source_ids.size() != count
+        || centers.size() != count || vectors.size() != count
+        || strengths.size() != count || radii.size() != count
+        || expires_at_ticks.size() != count) {
+        return false;
+    }
+
+    starfall::sim::GravitySourceCommandBatch batch;
+    batch.commands.reserve(static_cast<std::size_t>(count));
+    for (std::int64_t index = 0; index < count; ++index) {
+        if (request_ids[index] <= 0 || source_ids[index] <= 0
+            || command_kinds[index] < 0 || command_kinds[index] > 2
+            || field_kinds[index] < 0 || field_kinds[index] > 1
+            || !std::isfinite(centers[index].x) || !std::isfinite(centers[index].y)
+            || !std::isfinite(vectors[index].x) || !std::isfinite(vectors[index].y)
+            || !std::isfinite(strengths[index]) || !std::isfinite(radii[index])
+            || radii[index] <= 0.0 || expires_at_ticks[index] < 0) {
+            return false;
+        }
+        const auto kind = static_cast<starfall::sim::GravitySourceCommandKind>(
+            command_kinds[index]
+        );
+        const auto source_id = static_cast<std::uint64_t>(source_ids[index]);
+        starfall::sim::GravitySourceCommand command{
+            .kind = kind,
+            .request_id = static_cast<std::uint64_t>(request_ids[index]),
+            .source = {
+                .source_id = source_id,
+                .kind = field_kinds[index] == 0
+                    ? starfall::sim::GravityFieldKind::radial_falloff
+                    : starfall::sim::GravityFieldKind::uniform_vector,
+                .center = to_sim(centers[index]),
+                .vector = to_sim(vectors[index]),
+                .strength = strengths[index],
+                .radius = radii[index],
+                .expires_at_tick = static_cast<std::uint64_t>(expires_at_ticks[index]),
+            },
+            .source_id = source_id,
+        };
+        batch.commands.push_back(command);
+    }
+
+    gravity_command_results_.version = starfall::sim::gravity_transport_dto_version;
+    gravity_command_results_.tick = host_.tick();
+    try {
+        host_.submit_gravity_source_commands(std::move(batch));
+        for (std::int64_t index = 0; index < count; ++index) {
+            gravity_command_results_.results.push_back({
+                .request_id = static_cast<std::uint64_t>(request_ids[index]),
+                .code = starfall::sim::GravitySourceCommandResultCode::accepted,
+                .source_id = static_cast<std::uint64_t>(source_ids[index]),
+            });
+        }
+    } catch (const std::exception&) {
+        for (std::int64_t index = 0; index < count; ++index) {
+            gravity_command_results_.results.push_back({
+                .request_id = static_cast<std::uint64_t>(request_ids[index]),
+                .code = starfall::sim::GravitySourceCommandResultCode::invalid,
+                .source_id = static_cast<std::uint64_t>(source_ids[index]),
+            });
+        }
+        return false;
+    }
+    return true;
+}
+
+godot::Dictionary StarfallSimulationHost::drain_gravity_source_command_result_batch() {
+    const auto batch = std::move(gravity_command_results_);
+    gravity_command_results_ = {
+        .version = starfall::sim::gravity_transport_dto_version,
+        .tick = host_.tick(),
+        .results = {},
+    };
+    godot::PackedInt64Array request_ids;
+    godot::PackedInt32Array codes;
+    godot::PackedInt64Array source_ids;
+    for (const auto& result : batch.results) {
+        request_ids.append(to_godot_id(result.request_id));
+        codes.append(static_cast<std::int32_t>(result.code));
+        source_ids.append(to_godot_id(result.source_id));
+    }
+    godot::Dictionary output;
+    output["version"] = static_cast<std::int64_t>(batch.version);
+    output["tick"] = to_godot_id(batch.tick);
+    output["request_ids"] = request_ids;
+    output["codes"] = codes;
+    output["source_ids"] = source_ids;
+    return output;
+}
+
+godot::Dictionary StarfallSimulationHost::sample_gravity_batch(
+    std::int64_t dto_version,
+    const godot::PackedInt64Array& request_ids,
+    const godot::PackedVector2Array& positions
+) const {
+    if (dto_version != starfall::sim::gravity_transport_dto_version
+        || request_ids.size() != positions.size()) {
+        return {};
+    }
+    starfall::sim::GravityQueryBatch queries;
+    queries.queries.reserve(static_cast<std::size_t>(request_ids.size()));
+    for (std::int64_t index = 0; index < request_ids.size(); ++index) {
+        if (request_ids[index] <= 0
+            || !std::isfinite(positions[index].x)
+            || !std::isfinite(positions[index].y)) {
+            return {};
+        }
+        queries.queries.push_back({
+            .request_id = static_cast<std::uint64_t>(request_ids[index]),
+            .position = to_sim(positions[index]),
+        });
+    }
+    starfall::sim::GravityQueryResultBatch batch;
+    try {
+        batch = host_.sample_gravity_queries(std::move(queries));
+    } catch (const std::exception&) {
+        return {};
+    }
+    godot::PackedInt64Array result_ids;
+    godot::PackedInt64Array ticks;
+    godot::PackedVector2Array accelerations;
+    godot::PackedFloat64Array magnitudes;
+    godot::PackedInt64Array dominant_source_ids;
+    godot::PackedInt32Array zero_gravity;
+    godot::PackedInt32Array transitioning;
+    godot::PackedInt32Array sample_limit_reached;
+    for (const auto& result : batch.results) {
+        result_ids.append(to_godot_id(result.request_id));
+        ticks.append(to_godot_id(result.tick));
+        accelerations.append(to_godot(result.sample.acceleration));
+        magnitudes.append(result.sample.magnitude);
+        dominant_source_ids.append(to_godot_id(result.sample.dominant_source_id));
+        zero_gravity.append(result.sample.zero_gravity ? 1 : 0);
+        transitioning.append(result.sample.transitioning ? 1 : 0);
+        sample_limit_reached.append(result.sample.sample_limit_reached ? 1 : 0);
+    }
+    godot::Dictionary output;
+    output["version"] = static_cast<std::int64_t>(batch.version);
+    output["tick"] = to_godot_id(batch.tick);
+    output["request_ids"] = result_ids;
+    output["ticks"] = ticks;
+    output["accelerations"] = accelerations;
+    output["magnitudes"] = magnitudes;
+    output["dominant_source_ids"] = dominant_source_ids;
+    output["zero_gravity"] = zero_gravity;
+    output["transitioning"] = transitioning;
+    output["sample_limit_reached"] = sample_limit_reached;
+    return output;
+}
+
 bool StarfallSimulationHost::configure_material_world(
     std::int64_t width,
     std::int64_t height,
@@ -264,6 +467,7 @@ bool StarfallSimulationHost::configure_material_world(
     config.initial_material = static_cast<starfall::sim::Material>(initial_material);
     try {
         host_.reset(config);
+        gravity_command_results_ = {};
     } catch (const std::exception&) {
         return false;
     }
@@ -537,6 +741,12 @@ godot::Dictionary StarfallSimulationHost::drain_dirty_chunk_batch() {
 godot::String StarfallSimulationHost::get_material_checksum_hex() const {
     std::ostringstream output;
     output << std::hex << std::setfill('0') << std::setw(16) << host_.material_checksum();
+    return godot::String(output.str().c_str());
+}
+
+godot::String StarfallSimulationHost::get_gravity_checksum_hex() const {
+    std::ostringstream output;
+    output << std::hex << std::setfill('0') << std::setw(16) << host_.gravity_checksum();
     return godot::String(output.str().c_str());
 }
 

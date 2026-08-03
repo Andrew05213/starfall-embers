@@ -243,3 +243,9 @@
 - PR #13 `codex/p4-gravity-core` 已由 Draft 转 Ready，并在 8/8 CI 全绿后合并到 `main`；merge commit 为 `2f5f0e106514ac0a436d6d080b4dd3d47103cf00`。
 - `1301ec8` 的 host reset 生命周期修复已通过两组 Godot 4.7.1 smoke、两组 Windows bridge、两组 native/content checks；之前的 `GravityField::advance_tick()` 悬空指针 blocker 已关闭。
 - 下一工作线必须从 `origin/main=2f5f0e1` 新建 `C:\tmp\starfall-p4-gravity-shadow-20260804` / `codex/p4-gravity-shadow`，不堆叠旧 PR #13，不触碰 PR #7、萨迦素材或主工作区脏改动。
+## 15. P4 gravity shadow transport snapshot (2026-08-04)
+
+- Worktree `C:\tmp\starfall-p4-gravity-shadow-20260804`, branch `codex/p4-gravity-shadow`, starts from `origin/main=98c1e2e` (PR #13 core plus PR #14 status merge); implementation commit is `39cd1c5`.
+- Added gravity query/result DTO v1 without changing material DTO v1, atomic pending-source preflight, batched GDExtension command/query methods, source result drain, checksum access, and `NativeGravityProvider` with fallback/shadow/authoritative modes. Existing MaterialWorld remains the shadow reference and dual-write target.
+- Local Debug native CTest 4/4 and Godot contract check pass; Debug bridge compiles with pinned godot-cpp `58d1de7`. Headless Godot 4.7.1 gravity shadow smoke and full CI remain pending until the Draft PR is pushed.
+- No formal scene, project.godot, PR #7, or protected main-worktree/Saga asset changes are included. P4 role/camera authority, diagnostics, and benchmark remain incomplete.

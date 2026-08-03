@@ -148,6 +148,15 @@ void test_shared_host_field_and_replay() {
     second.step();
     assert(first.tick() == 1);
     assert(first.gravity_checksum() == second.gravity_checksum());
+
+    const auto queries = first.sample_gravity_queries({
+        .queries = {{.request_id = 101, .position = {320.0, 10020.0}}},
+    });
+    assert(queries.version == gravity_transport_dto_version);
+    assert(queries.tick == 1);
+    assert(queries.results.size() == 1);
+    assert(queries.results[0].request_id == 101);
+    assert(queries.results[0].sample.zero_gravity);
 }
 
 } // namespace
