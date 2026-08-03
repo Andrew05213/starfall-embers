@@ -21,7 +21,7 @@
 
 ## 2. GitHub 与分支关系
 
-- `main` 的最新 head 为 `afa36c7`（2026-08-04 由 `git ls-remote` 复核）；其中 `fc22398`
+- `main` 的最新 head 为 `83e9b3b`（2026-08-04 由 `git ls-remote` 复核）；其中 `fc22398`
   仍是 P0.3/P2 代码合并提交。
 - [PR #6](https://github.com/Andrew05213/starfall-embers/pull/6) 已合并设计基线，merge commit
   为 `112e6da`；46 个批准二进制的 LFS 远端恢复验证已经完成。
@@ -46,6 +46,9 @@
 - [PR #11](https://github.com/Andrew05213/starfall-embers/pull/11) 已从 Draft 转为 Ready 并合并，
   base 为 `main`，head 为 `727fd23`，merge commit 为 `afa36c7`；最终 head 的 content、
   native-core、windows-native-bridge、godot-demo checks 全部通过。
+- [PR #12](https://github.com/Andrew05213/starfall-embers/pull/12) 已在全套 CI 通过后合并，
+  head 为 `c558ec0`，merge commit 为 `83e9b3b`；只包含 P3 的 `todo.md` 与
+  `docs/handoff/current.md` 状态对账。
 
 ## 3. 本机 worktree
 
@@ -78,7 +81,11 @@
     `SAND↔AIR` 原生迁移和验证，不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
 - `C:\tmp\starfall-status-after-p3-20260804`
   - `codex/update-status-after-p3`，从 PR #11 merge commit `afa36c7` 建立；只用于核销 P3
-    首批和更新本交接，不夹带代码、构建输出或素材。
+  首批和更新本交接，不夹带代码、构建输出或素材。
+- `C:\tmp\starfall-p4-native-gravity-20260804`
+  - `codex/p4-gravity-core`，从 PR #11 合并后的 `main` 建立；已同步 PR #12 的状态提交，
+    核心实现提交为 `c98e641`，当前包含合并文档的本地整合提交。只用于 P4 原生重力核心，
+    不得接触 PR #7、萨迦素材或主要工作区的受保护改动。
 - `C:\Users\Andrew\Documents\game\build\pr4-gate15-src`
   - detached `a556cd8`；PR #4 Gate 1.5 的历史隔离复现工作区，不是当前开发分支。
 
@@ -143,14 +150,16 @@
 
 ## 8. 后续顺序
 
-1. 合并 PR #11 后核销 P3 首批三个 TODO，并把 merge commit `afa36c7` 写入 `main` 的交接状态。
-2. 从更新后的最新 `main` 建立 P4 原生重力 worktree；按“核心 → 批桥接/影子 → 角色/镜头 →
-   诊断/验收”四个非堆叠 Draft PR 依次推进。P4 不改变材质 DTO、P3 固定 `+Y` 粉末规则或正式
-   混合材质场景；每阶段保留 GDScript 参考和确定性回放。
-3. PR #7 继续由独立工作线处理；重新审查其相对最新 `main` 的范围、LFS 指针和可合并性，
+1. PR #11 已合并，P3 首批三个 TODO 已核销；状态对账已通过 PR #12（merge commit `83e9b3b`）
+   写入 `main`。
+2. P4 原生重力核心已在独立 worktree 实现：新增 ADR-0006、`GravityField`、局部场命令、
+   checksum、高速 ballistics 子步和 native CTest；核心 PR 尚未推送或创建，待本地审查后发布。
+3. 按“核心 → 批桥接/影子 → 角色/镜头 → 诊断/验收”四个非堆叠 Draft PR 依次推进。P4 不改变
+   材质 DTO、P3 固定 `+Y` 粉末规则或正式混合材质场景；每阶段保留 GDScript 参考和确定性回放。
+4. PR #7 继续由独立工作线处理；重新审查其相对最新 `main` 的范围、LFS 指针和可合并性，
    必要时仅在其 worktree 变基，不把 PR #11 或萨迦素材带入本分支。
-4. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
-5. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
+5. PR #7 收敛后，再独立审计萨迦 worktree 中 5 个已跟踪修改与 10 个未跟踪后续项。
+6. 每项操作完成后同步本文件与 `todo.md`，再进入下一项。
 
 ## 9. 本次维护快照
 
@@ -208,3 +217,17 @@
 - PR #11（base `main`，head `727fd23`）已在最终 head 全部 CI 通过后由 Draft 转 Ready 并合并，
   merge commit 为 `afa36c7`。P3 首批固定向下 `SAND↔AIR` 的三个 TODO 已达到“合并且验收”
   门槛；PR #7 保持独立处理。
+
+## 12. P4 原生重力核心快照（2026-08-04）
+
+- 独立 worktree `C:\tmp\starfall-p4-native-gravity-20260804` 的分支为
+  `codex/p4-gravity-core`，基线为 PR #11 merge 后的 `main`，当前远端 main 已包含 PR #12
+  状态对账 merge `83e9b3b`。
+- 实现提交 `c98e641` 新增共享 `Vec2`、`GravityField`、主坠核和两类有界局部场、稳定
+  source ID 命令、tick 过期、field checksum，并让 ballistics 通过同一 field 进行确定性
+  高速子步采样；未改变 material DTO、P3 `+Y` 粉末规则或 Godot 正式行为。
+- ADR-0006 冻结实体重力所有权、角色/镜头边界和后续批桥接方向。核心 Debug CTest 为 4/4，
+  包括新增 gravity smoke；Release、Godot bridge、跨语言 shadow 和 P4 角色切换尚未完成。
+- P4 第一核心 PR 尚未推送；下一步是补充/审查 native gravity 接口后推送 Draft PR，并在
+  每个阶段完成后同步本文件与 `todo.md`。用户要求的最终 `gpt-5.6-sol xhigh` 只读 review
+  在 P4 交付完成后执行；若发现 blocker，只记录，不在 review 后擅自修改。
