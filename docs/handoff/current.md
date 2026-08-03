@@ -299,3 +299,9 @@
 
 - The review-status document commit is now on `origin/main` as merge commit `cc428899cdb50bf2b2b4911bf29b86931cbfbca9` (PR #21 content, `85f4ce5`). This is the authoritative handoff tip after the review; no implementation files changed after the review.
 - The last verified full main workflow before this documentation-only landing was `30849263051` for `122e5e3`, all four jobs successful. The blocker record itself is documentation-only and does not alter runtime behavior or assets.
+
+## 23. Final main CI infrastructure status (2026-08-04)
+
+- Main push workflow `30853826868` for merge commit `cf4f6ee5c957340208155fbb6a4798c31838a3f4` failed on all four jobs (content, native-core, Godot demo, Windows bridge) before any job step or log was produced. A failed-only rerun (`run_attempt=2`) reproduced the same no-step failure.
+- This is recorded as an external GitHub Actions runner/startup blocker, not a code or test failure. PR #22 push and pull-request workflows both passed all 8 checks, and the preceding main workflow `30849263051` passed all four jobs.
+- Do not bypass branch protection or change implementation to address this infrastructure event. Recheck a later main push workflow when GitHub Actions is healthy; preserve the P4 implementation-review blockers above.
