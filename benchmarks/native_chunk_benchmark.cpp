@@ -141,7 +141,7 @@ int main() {
               << "chunk: " << material_chunk_size << 'x' << material_chunk_size << '\n'
               << "commands: " << results.results.size() << '\n'
               << "command batch ms: " << command_ms << '\n'
-              << "active dirty chunks: " << dirty.chunks.size() << '\n'
+              << "dirty chunks (this batch; not activation scheduling): " << dirty.chunks.size() << '\n'
               << "dirty payload bytes: " << dirty_bytes << '\n'
               << "dirty consume ms: " << dirty_ms << '\n'
               << "powder ticks: " << powder_ticks << '\n'
@@ -151,9 +151,9 @@ int main() {
               << "powder frame budget ms: " << frame_budget_ms << '\n'
               << "powder p95 budget utilization: "
               << (powder_p95_ms / frame_budget_ms * 100.0) << "%\n"
-              << "powder active dirty chunks average: "
+              << "powder dirty chunks average (not activation scheduling): "
               << (static_cast<double>(dirty_chunk_total) / powder_ticks) << '\n'
-              << "powder active dirty chunks max: " << dirty_chunk_max << '\n'
+              << "powder dirty chunks max (not activation scheduling): " << dirty_chunk_max << '\n'
               << "powder dirty payload bytes average: "
               << (static_cast<double>(dirty_payload_total) / powder_ticks) << '\n'
               << "powder dirty payload bytes max: " << dirty_payload_max << '\n'

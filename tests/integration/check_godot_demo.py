@@ -221,4 +221,24 @@ combat_source = require_text(GAME / "scripts" / "combat" / "combat_lab.gd")
 if "juvenile_requested.connect" not in combat_source:
     fail("combat lab does not connect the juvenile starseed request")
 
+diagnostics_overlay = require_text(
+    GAME / "scripts" / "demo" / "gravity_diagnostics_overlay.gd"
+)
+for function in (
+    "set_enabled",
+    "set_gravity_snapshot",
+    "set_primary_snapshot",
+    "set_local_sources",
+    "set_dirty_chunks",
+    "set_warnings",
+):
+    if re.search(rf"^func\s+{re.escape(function)}\s*\(", diagnostics_overlay, re.MULTILINE) is None:
+        fail(f"gravity_diagnostics_overlay.gd lacks func {function}()")
+for relative in (
+    "tests/native_gravity_bridge_smoke.gd",
+    "tests/gravity_shadow_smoke.gd",
+    "tests/gravity_transition_smoke.gd",
+):
+    require_text(GAME / relative)
+
 print(f"demo contract: PASS ({len(set(resource_paths))} scene resources checked)")
