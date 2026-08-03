@@ -270,6 +270,25 @@ void BallisticSystem::set_collision_world(CollisionWorldSnapshot snapshot) {
     collision_world_ = std::move(snapshot);
 }
 
+void BallisticSystem::reset(std::uint32_t ticks_per_second, GravityField* gravity_field) {
+    if (ticks_per_second == 0 || gravity_field == nullptr) {
+        throw std::invalid_argument("ballistic reset requires a valid gravity field");
+    }
+    if (gravity_field->ticks_per_second() != ticks_per_second) {
+        throw std::invalid_argument("ballistic reset timestep must match gravity field");
+    }
+    ticks_per_second_ = ticks_per_second;
+    fixed_step_seconds_ = 1.0 / static_cast<double>(ticks_per_second_);
+    tick_ = 0;
+    next_projectile_id_ = 1;
+    gravity_field_ = gravity_field;
+    pending_commands_ = {};
+    collision_world_ = {};
+    active_projectiles_.clear();
+    state_batch_ = {};
+    event_batch_ = {};
+}
+
 void BallisticSystem::step() {
     ++tick_;
     gravity_field_->advance_tick();

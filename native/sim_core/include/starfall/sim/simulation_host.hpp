@@ -25,7 +25,14 @@ struct SimulationHostConfig final {
 class SimulationHost final {
 public:
     explicit SimulationHost(SimulationHostConfig config = {});
+    SimulationHost(const SimulationHost&) = delete;
+    SimulationHost& operator=(const SimulationHost&) = delete;
+    SimulationHost(SimulationHost&&) = delete;
+    SimulationHost& operator=(SimulationHost&&) = delete;
 
+    /// Rebuilds all subsystem state without assigning a BallisticSystem that
+    /// would retain a pointer to a temporary GravityField.
+    void reset(SimulationHostConfig config = {});
     void submit_projectile_commands(ProjectileCommandBatch commands);
     void submit_gravity_source_commands(GravitySourceCommandBatch commands);
     void submit_material_commands(MaterialCommandBatchDto commands);

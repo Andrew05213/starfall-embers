@@ -18,6 +18,25 @@ SimulationHost::SimulationHost(SimulationHostConfig config)
           .initial_material = config_.initial_material,
       }) {}
 
+void SimulationHost::reset(SimulationHostConfig config) {
+    config_ = config;
+    gravity_field_ = GravityField(config_.ticks_per_second, config_.primary_gravity);
+    ballistics_.reset(config_.ticks_per_second, &gravity_field_);
+    material_world_ = World({
+        .ticks_per_second = config_.ticks_per_second,
+        .width = config_.material_world_width,
+        .height = config_.material_world_height,
+        .chunk_size = material_chunk_size,
+        .seed = config_.random_seed,
+        .initial_material = config_.initial_material,
+    });
+    pending_projectile_commands_ = {};
+    pending_gravity_source_commands_ = {};
+    pending_projectile_events_ = {};
+    pending_material_commands_ = {};
+    pending_material_results_ = {};
+}
+
 void SimulationHost::submit_projectile_commands(ProjectileCommandBatch commands) {
     pending_projectile_commands_.spawns.insert(
         pending_projectile_commands_.spawns.end(),

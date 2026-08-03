@@ -141,6 +141,13 @@ void test_shared_host_field_and_replay() {
     const auto second_sample = second.gravity_field().sample({0.0, 50.0});
     assert(near(first_sample.acceleration.x, second_sample.acceleration.x));
     assert(near(first_sample.acceleration.y, second_sample.acceleration.y));
+
+    first.reset();
+    second.reset();
+    first.step();
+    second.step();
+    assert(first.tick() == 1);
+    assert(first.gravity_checksum() == second.gravity_checksum());
 }
 
 } // namespace

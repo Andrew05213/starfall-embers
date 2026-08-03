@@ -135,12 +135,20 @@ public:
         std::uint32_t ticks_per_second,
         GravityField* gravity_field
     );
+    BallisticSystem(const BallisticSystem&) = delete;
+    BallisticSystem& operator=(const BallisticSystem&) = delete;
+    BallisticSystem(BallisticSystem&&) = delete;
+    BallisticSystem& operator=(BallisticSystem&&) = delete;
 
     /// Queues one command batch for the next fixed step. A batch is intentionally
     /// moved in so bridge code can transfer many commands with one boundary
     /// crossing. Submitting another non-empty batch before step() is an error.
     void submit(ProjectileCommandBatch commands);
     void set_collision_world(CollisionWorldSnapshot snapshot);
+    /// Clears all projectile state while retaining a caller-owned gravity
+    /// field binding. This avoids copying a raw field pointer during host
+    /// reconfiguration.
+    void reset(std::uint32_t ticks_per_second, GravityField* gravity_field);
     void step();
 
     [[nodiscard]] std::uint32_t ticks_per_second() const noexcept;
