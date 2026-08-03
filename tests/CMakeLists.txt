@@ -21,3 +21,11 @@ add_executable(starfall_simulation_host_smoke
 target_link_libraries(starfall_simulation_host_smoke PRIVATE starfall::sim_core)
 
 add_test(NAME starfall.simulation_host_smoke COMMAND starfall_simulation_host_smoke)
+
+add_executable(starfall_gravity_smoke
+    unit/gravity_smoke.cpp
+)
+
+target_link_libraries(starfall_gravity_smoke PRIVATE starfall::sim_core)
+
+add_test(NAME starfall.gravity_smoke COMMAND starfall_gravity_smoke)

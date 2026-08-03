@@ -1,5 +1,6 @@
 add_library(starfall_sim_core STATIC
     src/ballistics.cpp
+    src/gravity.cpp
     src/simulation_host.cpp
     src/world.cpp
 )

@@ -151,7 +151,7 @@ void StarfallSimulationHost::_bind_methods() {
 }
 
 void StarfallSimulationHost::reset_to_gate1_baseline() {
-    host_ = starfall::sim::SimulationHost{};
+    host_.reset();
 }
 
 bool StarfallSimulationHost::configure_primary_gravity(
@@ -178,7 +178,7 @@ bool StarfallSimulationHost::configure_primary_gravity(
         .surface_radius = surface_radius,
         .surface_acceleration = surface_acceleration,
     };
-    host_ = starfall::sim::SimulationHost{config};
+    host_.reset(config);
     return true;
 }
 
@@ -263,7 +263,7 @@ bool StarfallSimulationHost::configure_material_world(
     config.material_world_height = static_cast<std::uint32_t>(height);
     config.initial_material = static_cast<starfall::sim::Material>(initial_material);
     try {
-        host_ = starfall::sim::SimulationHost{config};
+        host_.reset(config);
     } catch (const std::exception&) {
         return false;
     }

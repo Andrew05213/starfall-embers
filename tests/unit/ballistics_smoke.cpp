@@ -87,6 +87,8 @@ void test_fixed_step_and_batch_state() {
     assert(state.position.x > state.previous_position.x);
     assert(state.position.y > state.previous_position.y);
     assert(near(state.age_seconds, 1.0 / 30.0));
+    assert(state.gravity_substeps == 2);
+    assert(!state.gravity_sample_limit_reached);
 }
 
 void test_gate1_one_view_drop_and_lifetime() {

@@ -134,6 +134,9 @@
 
 目标：让“下方由世界决定”既真实又能被玩家稳定阅读。
 
+> P4 已启动。核心 worktree 为 `C:\tmp\starfall-p4-native-gravity-20260804`，实现提交
+> `c98e641` 已通过 Debug CTest 4/4；完整 P4 尚未合并，因此以下复选框保持未勾选。
+
 - [ ] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
 - [ ] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
 - [ ] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
@@ -229,3 +232,4 @@
 - 不在 P7 前扩写完整第二祖星、Boss、经济和完整战役。
 - 不让 GPU 承担首版权威物理，也不引入逐像素 Godot/C++ 调用。
 - 不规划多人联机；若未来提出，必须先做独立架构与确定性评估。
+P4 core CI ledger (2026-08-04): local lifecycle fix `1301ec8` is complete; Debug/Release CTest and the Godot contract check pass. PR #13 remains unchecked pending push and green Godot smoke plus Windows bridge CI.

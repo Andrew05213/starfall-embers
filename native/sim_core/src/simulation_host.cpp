@@ -7,7 +7,8 @@ namespace starfall::sim {
 
 SimulationHost::SimulationHost(SimulationHostConfig config)
     : config_(config),
-      ballistics_(config_.ticks_per_second, config_.primary_gravity),
+      gravity_field_(config_.ticks_per_second, config_.primary_gravity),
+      ballistics_(config_.ticks_per_second, &gravity_field_),
       material_world_({
           .ticks_per_second = config_.ticks_per_second,
           .width = config_.material_world_width,
@@ -16,6 +17,25 @@ SimulationHost::SimulationHost(SimulationHostConfig config)
           .seed = config_.random_seed,
           .initial_material = config_.initial_material,
       }) {}
+
+void SimulationHost::reset(SimulationHostConfig config) {
+    config_ = config;
+    gravity_field_ = GravityField(config_.ticks_per_second, config_.primary_gravity);
+    ballistics_.reset(config_.ticks_per_second, &gravity_field_);
+    material_world_ = World({
+        .ticks_per_second = config_.ticks_per_second,
+        .width = config_.material_world_width,
+        .height = config_.material_world_height,
+        .chunk_size = material_chunk_size,
+        .seed = config_.random_seed,
+        .initial_material = config_.initial_material,
+    });
+    pending_projectile_commands_ = {};
+    pending_gravity_source_commands_ = {};
+    pending_projectile_events_ = {};
+    pending_material_commands_ = {};
+    pending_material_results_ = {};
+}
 
 void SimulationHost::submit_projectile_commands(ProjectileCommandBatch commands) {
     pending_projectile_commands_.spawns.insert(
@@ -27,6 +47,15 @@ void SimulationHost::submit_projectile_commands(ProjectileCommandBatch commands)
         pending_projectile_commands_.retires.end(),
         std::make_move_iterator(commands.retires.begin()),
         std::make_move_iterator(commands.retires.end())
+    );
+}
+
+void SimulationHost::submit_gravity_source_commands(GravitySourceCommandBatch commands) {
+    gravity_field_.validate_command_batch(commands);
+    pending_gravity_source_commands_.commands.insert(
+        pending_gravity_source_commands_.commands.end(),
+        std::make_move_iterator(commands.commands.begin()),
+        std::make_move_iterator(commands.commands.end())
     );
 }
 
@@ -44,6 +73,13 @@ void SimulationHost::submit_collision_world(CollisionWorldSnapshot snapshot) {
 }
 
 void SimulationHost::step() {
+    if (!pending_gravity_source_commands_.commands.empty()) {
+        gravity_field_.apply(std::move(pending_gravity_source_commands_));
+        pending_gravity_source_commands_ = {
+            .version = gravity_transport_dto_version,
+            .commands = {},
+        };
+    }
     pending_material_results_.results.reserve(
         pending_material_results_.results.size() + pending_material_commands_.commands.size()
     );
@@ -88,6 +124,10 @@ std::size_t SimulationHost::pending_projectile_command_count() const noexcept {
         + pending_projectile_commands_.retires.size();
 }
 
+std::size_t SimulationHost::pending_gravity_source_command_count() const noexcept {
+    return pending_gravity_source_commands_.commands.size();
+}
+
 std::size_t SimulationHost::pending_material_command_count() const noexcept {
     return pending_material_commands_.commands.size();
 }
@@ -129,6 +169,14 @@ DirtyChunkBatchDto SimulationHost::drain_dirty_chunks() {
 
 std::uint64_t SimulationHost::material_checksum() const noexcept {
     return material_world_.checksum();
+}
+
+std::uint64_t SimulationHost::gravity_checksum() const noexcept {
+    return gravity_field_.checksum();
+}
+
+const GravityField& SimulationHost::gravity_field() const noexcept {
+    return gravity_field_;
 }
 
 const World& SimulationHost::material_world() const noexcept {

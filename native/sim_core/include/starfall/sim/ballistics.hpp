@@ -1,45 +1,13 @@
 #pragma once
 
+#include "starfall/sim/gravity.hpp"
+
 #include <cstdint>
 #include <vector>
 
 namespace starfall::sim {
 
 using ProjectileId = std::uint64_t;
-
-struct Vec2 final {
-    double x = 0.0;
-    double y = 0.0;
-
-    [[nodiscard]] constexpr Vec2 operator+(const Vec2& other) const noexcept {
-        return {x + other.x, y + other.y};
-    }
-
-    [[nodiscard]] constexpr Vec2 operator-(const Vec2& other) const noexcept {
-        return {x - other.x, y - other.y};
-    }
-
-    [[nodiscard]] constexpr Vec2 operator*(double scalar) const noexcept {
-        return {x * scalar, y * scalar};
-    }
-
-    constexpr Vec2& operator+=(const Vec2& other) noexcept {
-        x += other.x;
-        y += other.y;
-        return *this;
-    }
-};
-
-struct PrimaryGravity final {
-    Vec2 center{320.0, 10'020.0};
-    double surface_radius = 10'000.0;
-    double surface_acceleration = 320.0;
-
-    /// Continuous uniform-sphere gravity inside the surface and inverse-square
-    /// gravity outside it. The returned vector always points toward center.
-    [[nodiscard]] Vec2 acceleration_at(Vec2 position) const noexcept;
-    [[nodiscard]] double magnitude_at_distance(double distance) const noexcept;
-};
 
 /// Gate 1's accepted shooting baseline. These values live here solely as a
 /// migration regression fixture; future star-sequence content will submit them
@@ -123,6 +91,8 @@ struct ProjectileState final {
     double lifetime_seconds = 0.0;
     double gravity_scale = 0.0;
     double collision_radius = 0.0;
+    std::uint32_t gravity_substeps = 0;
+    bool gravity_sample_limit_reached = false;
 };
 
 struct ProjectileStateBatch final {
@@ -161,18 +131,31 @@ public:
         std::uint32_t ticks_per_second = Gate1BallisticBaseline::ticks_per_second,
         PrimaryGravity gravity = Gate1BallisticBaseline::gravity()
     );
+    explicit BallisticSystem(
+        std::uint32_t ticks_per_second,
+        GravityField* gravity_field
+    );
+    BallisticSystem(const BallisticSystem&) = delete;
+    BallisticSystem& operator=(const BallisticSystem&) = delete;
+    BallisticSystem(BallisticSystem&&) = delete;
+    BallisticSystem& operator=(BallisticSystem&&) = delete;
 
     /// Queues one command batch for the next fixed step. A batch is intentionally
     /// moved in so bridge code can transfer many commands with one boundary
     /// crossing. Submitting another non-empty batch before step() is an error.
     void submit(ProjectileCommandBatch commands);
     void set_collision_world(CollisionWorldSnapshot snapshot);
+    /// Clears all projectile state while retaining a caller-owned gravity
+    /// field binding. This avoids copying a raw field pointer during host
+    /// reconfiguration.
+    void reset(std::uint32_t ticks_per_second, GravityField* gravity_field);
     void step();
 
     [[nodiscard]] std::uint32_t ticks_per_second() const noexcept;
     [[nodiscard]] double fixed_step_seconds() const noexcept;
     [[nodiscard]] std::uint64_t tick() const noexcept;
     [[nodiscard]] const PrimaryGravity& gravity() const noexcept;
+    [[nodiscard]] const GravityField& gravity_field() const noexcept;
     [[nodiscard]] const ProjectileStateBatch& states() const noexcept;
     [[nodiscard]] const ProjectileEventBatch& events() const noexcept;
 
@@ -186,7 +169,8 @@ private:
     double fixed_step_seconds_ = 1.0 / Gate1BallisticBaseline::ticks_per_second;
     std::uint64_t tick_ = 0;
     ProjectileId next_projectile_id_ = 1;
-    PrimaryGravity gravity_{};
+    GravityField gravity_storage_{};
+    GravityField* gravity_field_ = &gravity_storage_;
     ProjectileCommandBatch pending_commands_{};
     CollisionWorldSnapshot collision_world_{};
     std::vector<ProjectileState> active_projectiles_{};
