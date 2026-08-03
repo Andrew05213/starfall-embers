@@ -294,3 +294,8 @@
 - Non-blocking risks: the overlay has no formal runtime consumer and does not show source type/remaining ticks; bridge failures collapse duplicate/not-found cases into `invalid`; the high-speed benchmark uses 1200 px/s and reports two substeps with zero sample-limit hits; older top-of-file handoff statements still contain historical hashes/order text.
 - Verification snapshot: final `main=122e5e37b9dcc733dc0820c6312b51ab369c3e18`; PR #19 and #20 final heads had 8/8 push/PR checks; final main push workflow `30849263051` completed all four jobs successfully. Remote CTest/Godot/benchmark checks passed, while local CMake remained unavailable because this Windows host has no C++ compiler.
 - Policy: preserve the blockers and current implementation unchanged after this review. Do not mark P4 fully accepted or start follow-up fixes without an explicit new authorization; real chunk activation scheduling also remains a separate P3 dependency.
+
+## 22. Final blocker record landed on main (2026-08-04)
+
+- The review-status document commit is now on `origin/main` as merge commit `cc428899cdb50bf2b2b4911bf29b86931cbfbca9` (PR #21 content, `85f4ce5`). This is the authoritative handoff tip after the review; no implementation files changed after the review.
+- The last verified full main workflow before this documentation-only landing was `30849263051` for `122e5e3`, all four jobs successful. The blocker record itself is documentation-only and does not alter runtime behavior or assets.
