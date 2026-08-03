@@ -222,3 +222,8 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/gravity_shadow_smoke.gd
+
+      - name: Verify gravity frame transitions
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/gravity_transition_smoke.gd

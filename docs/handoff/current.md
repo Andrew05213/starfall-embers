@@ -254,3 +254,9 @@
 - PR #15 `codex/p4-gravity-shadow` 已由 Draft 转 Ready，并在 8/8 CI 全绿后合并；merge commit 为 `98177ebd06e905a510aa44c7d843b1ea15ece4b4`。
 - 已验收 gravity DTO v1 批命令/查询、source result drain、`NativeGravityProvider` 三模式、MaterialWorld 双写和 `gravity_shadow_smoke.gd`；PR #7、萨迦素材和主工作区脏改动仍隔离。
 - 下一工作线从最新 `origin/main=98177eb` 新建 `C:\tmp\starfall-p4-player-camera-20260804` / `codex/p4-player-camera-gravity`，只处理 GravityFrame、角色和镜头，不改材质 DTO、P3 `+Y` 规则或正式素材。
+## 17. P4 GravityFrame role/camera snapshot (2026-08-04)
+
+- Worktree `C:\tmp\starfall-p4-player-camera-20260804`, branch `codex/p4-player-camera-gravity`, base `origin/main=98177eb`; implementation commit `eb58c1b`.
+- Added `GravityFrame` with zero-gravity hysteresis (`0.001`/`0.002`), stable up/tangent selection, and one frame consumed by player movement and `GravityFollowCamera`; native provider defaults to authoritative when the extension is available and falls back cleanly otherwise.
+- Added `gravity_transition_smoke.gd` to CI. Static Godot contract check passes; headless Godot 4.7.1, full smoke, bridge, and role/camera transition CI remain pending until Draft PR publication.
+- Camera remains presentation-only and reads `GravityFrame.up`; no material DTO, P3 powder rule, formal scene, PR #7, Saga asset, or protected main-worktree change is included.
