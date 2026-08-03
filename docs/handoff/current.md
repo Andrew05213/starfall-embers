@@ -249,3 +249,9 @@
 - Added gravity query/result DTO v1 without changing material DTO v1, atomic pending-source preflight, batched GDExtension command/query methods, source result drain, checksum access, and `NativeGravityProvider` with fallback/shadow/authoritative modes. Existing MaterialWorld remains the shadow reference and dual-write target.
 - Local Debug native CTest 4/4 and Godot contract check pass; Debug bridge compiles with pinned godot-cpp `58d1de7`. Headless Godot 4.7.1 gravity shadow smoke and full CI remain pending until the Draft PR is pushed.
 - No formal scene, project.godot, PR #7, or protected main-worktree/Saga asset changes are included. P4 role/camera authority, diagnostics, and benchmark remain incomplete.
+## 17. P4 GravityFrame role/camera snapshot (2026-08-04)
+
+- Worktree `C:\tmp\starfall-p4-player-camera-20260804`, branch `codex/p4-player-camera-gravity`, base `origin/main=98177eb`; implementation commit `eb58c1b`.
+- Added `GravityFrame` with zero-gravity hysteresis (`0.001`/`0.002`), stable up/tangent selection, and one frame consumed by player movement and `GravityFollowCamera`; native provider defaults to authoritative when the extension is available and falls back cleanly otherwise.
+- Added `gravity_transition_smoke.gd` to CI. Static Godot contract check passes; headless Godot 4.7.1, full smoke, bridge, and role/camera transition CI remain pending until Draft PR publication.
+- Camera remains presentation-only and reads `GravityFrame.up`; no material DTO, P3 powder rule, formal scene, PR #7, Saga asset, or protected main-worktree change is included.
