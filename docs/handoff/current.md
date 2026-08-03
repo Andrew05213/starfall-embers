@@ -238,3 +238,8 @@
 - Debug CTest 4/4, Release CTest 4/4, and `tests/integration/check_godot_demo.py` pass locally.
 - PR #13 remains Draft until `1301ec8` is pushed and Godot smoke plus Windows bridge CI are green; do not merge before then.
 - The previous Godot failure was confirmed on the `reset_to_gate1_baseline()` to `GravityField::advance_tick()` path. The local fix is validated; remote re-verification remains pending.
+## 14. P4 核心合并状态（2026-08-04）
+
+- PR #13 `codex/p4-gravity-core` 已由 Draft 转 Ready，并在 8/8 CI 全绿后合并到 `main`；merge commit 为 `2f5f0e106514ac0a436d6d080b4dd3d47103cf00`。
+- `1301ec8` 的 host reset 生命周期修复已通过两组 Godot 4.7.1 smoke、两组 Windows bridge、两组 native/content checks；之前的 `GravityField::advance_tick()` 悬空指针 blocker 已关闭。
+- 下一工作线必须从 `origin/main=2f5f0e1` 新建 `C:\tmp\starfall-p4-gravity-shadow-20260804` / `codex/p4-gravity-shadow`，不堆叠旧 PR #13，不触碰 PR #7、萨迦素材或主工作区脏改动。
