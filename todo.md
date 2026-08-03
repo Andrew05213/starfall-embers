@@ -235,3 +235,4 @@
 P4 core CI ledger (2026-08-04): local lifecycle fix `1301ec8` is complete; Debug/Release CTest and the Godot contract check pass. PR #13 remains unchecked pending push and green Godot smoke plus Windows bridge CI.
 P4 核心合并对账（2026-08-04）：PR #13 已合并到 `main`（`2f5f0e1`），核心重力与生命周期修复验收完成。P4 的批桥接、shadow、角色/镜头权威切换、诊断和最终 benchmark 仍未完成；下一项从最新 main 开始 `codex/p4-gravity-shadow`。
 P4 shadow 对账（2026-08-04）：`39cd1c5` 已完成批量 native gravity source/query DTO、GDExtension bridge、fallback/shadow/authoritative provider 和独立 smoke；本地 CTest 4/4、bridge Debug 编译、Godot 合约检查通过。待推送 Draft PR 后完成 Godot 4.7.1 headless smoke、完整 CI 和 shadow 误差验收；角色/镜头、诊断、benchmark 仍未完成。
+P4 shadow 合并对账（2026-08-04）：PR #15 已合并到 `main`（`98177eb`），批桥接与 shadow smoke 验收完成。下一项为 `codex/p4-player-camera-gravity` 的 GravityFrame/角色/镜头权威切换；诊断叠层和 benchmark 仍未完成。

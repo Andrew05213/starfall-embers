@@ -249,3 +249,8 @@
 - Added gravity query/result DTO v1 without changing material DTO v1, atomic pending-source preflight, batched GDExtension command/query methods, source result drain, checksum access, and `NativeGravityProvider` with fallback/shadow/authoritative modes. Existing MaterialWorld remains the shadow reference and dual-write target.
 - Local Debug native CTest 4/4 and Godot contract check pass; Debug bridge compiles with pinned godot-cpp `58d1de7`. Headless Godot 4.7.1 gravity shadow smoke and full CI remain pending until the Draft PR is pushed.
 - No formal scene, project.godot, PR #7, or protected main-worktree/Saga asset changes are included. P4 role/camera authority, diagnostics, and benchmark remain incomplete.
+## 16. P4 gravity shadow merge status (2026-08-04)
+
+- PR #15 `codex/p4-gravity-shadow` 已由 Draft 转 Ready，并在 8/8 CI 全绿后合并；merge commit 为 `98177ebd06e905a510aa44c7d843b1ea15ece4b4`。
+- 已验收 gravity DTO v1 批命令/查询、source result drain、`NativeGravityProvider` 三模式、MaterialWorld 双写和 `gravity_shadow_smoke.gd`；PR #7、萨迦素材和主工作区脏改动仍隔离。
+- 下一工作线从最新 `origin/main=98177eb` 新建 `C:\tmp\starfall-p4-player-camera-20260804` / `codex/p4-player-camera-gravity`，只处理 GravityFrame、角色和镜头，不改材质 DTO、P3 `+Y` 规则或正式素材。
