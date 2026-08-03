@@ -140,7 +140,7 @@
 - [x] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
 - [x] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
 - [x] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
-- [ ] 增加重力向量、坠核影响范围、区块激活和异常速度调试叠层。
+- [x] 增加重力向量、坠核影响范围和异常速度调试叠层；区块激活叠层保留到真实 P3 activation batch。
 - [x] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越。
 - [x] 用井星已验收移动/镜头用例建立原生与现有行为回归对比。
 
@@ -239,3 +239,4 @@ P4 角色/镜头对账（2026-08-04）：`eb58c1b` 已完成 `GravityFrame`、�
 P4 shadow 合并对账（2026-08-04）：PR #15 已合并到 `main`（`98177eb`），批桥接与 shadow smoke 验收完成。下一项为 `codex/p4-player-camera-gravity` 的 GravityFrame/角色/镜头权威切换；诊断叠层和 benchmark 仍未完成。
 P4 角色/镜头合并对账（2026-08-04）：PR #17 已合并到 `main`（`606614f`），最终 head `f52e42e` 的 push 与 pull_request 两组 CI 均 8/8 通过。GravityFrame、零重力滞回、角色统一采样和镜头只读接入验收完成；诊断叠层、1024² 重力/粉末 benchmark、真实区块激活调度和最终 GPT-5.6-sol xhigh 只读复审仍未完成。
 P4 diagnostics 对账（2026-08-04）：`codex/p4-gravity-diagnostics` 从 `origin/main=d0bc415` 开始，实现提交 `268b15c`，Draft PR #19 已创建。已加入可选重力诊断叠层、native gravity bridge smoke、32 局部场/4096 查询/300 tick 的 1024² benchmark、批量确定性 CTest、高速弹体子步与采样上限指标，并明确 dirty chunks 不等于 activation scheduling。Python Godot 合约检查通过；本机因缺少 C++ 编译器无法运行 CMake/CTest，等待远端 CI。PR #19 未合并前保持 P4 diagnostics 与 benchmark 未勾选；真实区块激活调度和最终 GPT-5.6-sol xhigh 只读复审仍未完成。
+P4 diagnostics 合并对账（2026-08-04）：PR #19 已合并到 `main`（`176d7c7`），最终 head `ee9d189` 的 push 与 pull_request 两组 CI 均 8/8 通过。诊断叠层、bridge smoke、1024²/32 场/4096 查询/300 tick 重力 benchmark、高速弹体指标和 P3 dirty-chunk 统计已验收；真实区块激活调度仍未完成，最终 GPT-5.6-sol xhigh 只读复审待 P4 全部实现后执行。

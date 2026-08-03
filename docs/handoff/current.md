@@ -276,3 +276,11 @@
 - Python Godot contract check passes. Local CMake configure is blocked because this Windows host has no C++ compiler (`No CMAKE_CXX_COMPILER`); local Debug/Release CTest and native benchmarks therefore remain pending. Remote PR CI is the required compiler/Godot verification.
 - CI changes build and run the Release gravity, powder/chunk, and ballistics benchmarks plus the new bridge smoke. No hardware timing threshold is enforced; the benchmark reports the 30 Hz budget and P95 utilization.
 - No material DTO/P3 powder rule, formal scene, `game/project.godot`, PR #7, Saga assets, or protected main-worktree changes are included. Real activation scheduling and the final GPT-5.6-sol xhigh read-only review remain incomplete.
+
+## 20. P4 diagnostics/acceptance merge status (2026-08-04)
+
+- PR #19 `codex/p4-gravity-diagnostics` was promoted from Draft and merged into `main`; merge commit is `176d7c7108d14d541cc247096e36acfa27d21488`.
+- Final head `ee9d189c9d8bacdc661ff785e6115304fb90c684` passed both push and pull-request CI workflows, 8/8 checks each. Native-core included the new Release gravity/powder/ballistics benchmarks and diagnostics CTest; Godot included the bridge diagnostics smoke; Windows native bridge also passed.
+- P4 native gravity core, batched shadow transport, GravityFrame role/camera authority, diagnostics overlay, deterministic benchmark reporting, and high-speed sampling diagnostics are merged. The overlay remains opt-in and labels dirty chunks as transport output rather than activation scheduling.
+- Local Windows CMake/CTest was not available because no C++ compiler is installed; remote CI is the completed compiler/Godot verification. Python contract check passed locally.
+- This status worktree starts from `origin/main=176d7c7`; after it merges, P4 remains complete except for real chunk activation scheduling (requires a future P3 activation batch) and the requested final read-only GPT-5.6-sol xhigh review.
