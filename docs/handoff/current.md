@@ -307,3 +307,9 @@
 - P4 remains unchecked until both push and pull-request CI execute real build/test steps and pass, followed by the requested GPT-5.6-sol xhigh read-only review. PR #23 remains Draft/unmerged and its historical no-step/no-log runner failure is retained as infrastructure history, not treated as proof of this branch.
 - Local verification: `tests/integration/check_godot_demo.py` passes and `git diff --check` passes. CMake cannot configure because this machine has no C++ compiler; local Godot 4.7.1 headless attempts did not complete, so remote CI is mandatory for native/Godot verification.
 - LFS recovery was isolated without deleting data: ACL dump `C:\tmp\starfall-lfs-tmp-acl-20260805.txt` was saved and the old `.git\lfs\tmp` was renamed to `.git\lfs\tmp.blocked-20260805`; no protected ACL was weakened. The main worktree, `game/project.godot`, PR #7, Saga/LFS assets, material DTO v1, material IDs, 64×64 chunk protocol, and P3 activation scheduling remain out of scope and untouched.
+
+## 24. PR #24 Actions infrastructure blocker (2026-08-05)
+
+- PR #24 remains Draft, base `main`, head `5eaba99bcae099539887db783d6d08e6ed90e484`. The push workflow run `30932413793` and pull-request workflow run `30932413229` both failed before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` each reported an empty `steps` array and no build/test log.
+- This is recorded as a runner/infrastructure blocker, not an implementation verdict. Do not change the repair commits, bypass branch protection, promote the PR, merge PR #23, or run the final GPT-5.6-sol xhigh review until a later run executes real steps and passes.
+- The protected main worktree and all previously listed Saga/LFS/material/activation boundaries remain unchanged. Next action is a fresh CI verification after Actions recovers; no code edits are authorized by this status update.
