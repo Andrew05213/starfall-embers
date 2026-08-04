@@ -14,6 +14,8 @@ func _run() -> void:
 	await process_frame
 
 	var world = demo.get_node("MaterialWorld")
+	var runtime: NativeGravityRuntime = demo.get_node("NativeGravityRuntime")
+	var provider: NativeGravityProvider = runtime.get_provider()
 	if world == null:
 		_fail("MaterialWorld node is missing")
 		return
@@ -23,7 +25,7 @@ func _run() -> void:
 
 	var starseed := STARSEED_SCRIPT.new()
 	demo.add_child(starseed)
-	starseed.setup(world, Vector2(320.0, 4.0), Vector2(0.0, 120.0))
+	starseed.setup(world, Vector2(320.0, 4.0), Vector2(0.0, 120.0), "gravity", provider)
 
 	for _frame in range(120):
 		await physics_frame
@@ -41,6 +43,13 @@ func _run() -> void:
 	if int(stats.get("gravity_sources", 0)) < 1:
 		_fail("anchored starseed did not register a gravity source")
 		return
+	if provider.native_available:
+		if runtime.get_tick() <= 0:
+			_fail("formal Native gravity runtime did not advance")
+			return
+		if provider.get_source_snapshots().size() != 1:
+			_fail("anchored starseed did not dual-write its Native gravity source")
+			return
 
 	print("godot demo smoke: PASS ", stats)
 	quit(0)

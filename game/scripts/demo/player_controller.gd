@@ -51,7 +51,6 @@ var active := true
 
 var _material_world: Node
 var _gravity_provider: NativeGravityProvider
-var _gravity_host: Node
 var _gravity_frame := GravityFrame.new()
 var _up_direction := Vector2.UP
 var _tangent_direction := Vector2.RIGHT
@@ -69,7 +68,7 @@ func _ready() -> void:
 	_resolve_material_world()
 	if is_instance_valid(_material_world):
 		_configure_default_gravity_provider()
-		_update_gravity_basis()
+		_update_gravity_basis(0.0)
 		_resolve_initial_overlap()
 	# A reset is a discontinuity, not movement. Discard the previous physics
 	# transform so render interpolation cannot draw a trail from the old spawn.
@@ -89,7 +88,7 @@ func _physics_process(delta: float) -> void:
 	_fire_time_left = maxf(0.0, _fire_time_left - delta)
 	_extract_time_left = maxf(0.0, _extract_time_left - delta)
 	_invulnerability_left = maxf(0.0, _invulnerability_left - delta)
-	_update_gravity_basis()
+	_update_gravity_basis(delta)
 	_update_aim()
 	_grounded = _is_grounded()
 
@@ -137,11 +136,14 @@ func reset_player(world_position: Vector2) -> void:
 	_extract_time_left = 0.0
 	_invulnerability_left = 0.0
 	_fire_was_down = false
+	_gravity_frame = GravityFrame.new()
+	_up_direction = Vector2.UP
+	_tangent_direction = Vector2.RIGHT
 	if not is_instance_valid(_material_world):
 		_resolve_material_world()
 		_configure_default_gravity_provider()
 	if is_instance_valid(_material_world):
-		_update_gravity_basis()
+		_update_gravity_basis(0.0)
 		_resolve_initial_overlap()
 	# A reset is a discontinuity, not movement. Discard the previous physics
 	# transform so render interpolation cannot draw a trail from the old spawn.
@@ -207,7 +209,7 @@ func get_gravity_frame() -> GravityFrame:
 func set_gravity_provider(provider: NativeGravityProvider) -> void:
 	_gravity_provider = provider
 	if is_instance_valid(_material_world):
-		_update_gravity_basis()
+		_update_gravity_basis(0.0)
 
 
 func get_state() -> Dictionary:
@@ -239,31 +241,20 @@ func _resolve_material_world() -> void:
 
 
 func _configure_default_gravity_provider() -> void:
-	if is_instance_valid(_gravity_provider) or not is_instance_valid(_material_world):
-		return
-	if not ClassDB.class_exists("StarfallSimulationHost"):
-		return
-	var host := StarfallSimulationHost.new()
-	if not host.configure_primary_gravity(
-		_material_world.primary_gravity_center,
-		_material_world.primary_surface_radius,
-		_material_world.primary_gravity_acceleration,
-		30,
-		0x51A7E11
-	):
-		host.free()
-		return
-	var provider := NativeGravityProvider.new()
-	provider.configure(_material_world, host)
-	provider.set_mode(NativeGravityProvider.MODE_NATIVE_AUTHORITATIVE)
-	_gravity_host = host
-	_gravity_provider = provider
+	## The formal scene injects one shared provider from NativeGravityRuntime.
+	## Standalone tests and fallback scenes intentionally remain GDScript-only.
+	return
 
 
-func _update_gravity_basis() -> void:
-	var sample := _sample_gravity(global_position)
-	_gravity_frame.update_from_sample(
-		sample, _up_direction, _tangent_direction, _gravity_frame.zero_gravity
+func _update_gravity_basis(delta: float) -> void:
+	var predicted_position := global_position + velocity * maxf(delta, 0.0)
+	var samples: Array[Dictionary] = []
+	if is_instance_valid(_gravity_provider):
+		samples = _gravity_provider.sample_pair(global_position, predicted_position)
+	if samples.size() < 2:
+		samples = [_sample_gravity(global_position), _sample_gravity(predicted_position)]
+	_gravity_frame.update_from_samples(
+		samples[0], samples[1], _up_direction, _tangent_direction, _gravity_frame.zero_gravity
 	)
 	_up_direction = _gravity_frame.up
 	_tangent_direction = _gravity_frame.tangent

@@ -29,8 +29,10 @@ const SEED_DATA := {
 }
 
 @onready var material_world = $MaterialWorld
+@onready var gravity_runtime: NativeGravityRuntime = $NativeGravityRuntime
 @onready var player = $Player
 @onready var hud = $HUD
+@onready var gravity_overlay: GravityDiagnosticsOverlay = $GravityDiagnosticsOverlay
 
 var selected_seed_index := 0
 var recovered_shards := 0
@@ -43,6 +45,8 @@ var _extractor_flash := 0.0
 
 
 func _ready() -> void:
+	if is_instance_valid(gravity_runtime):
+		player.set_gravity_provider(gravity_runtime.get_provider())
 	player.starseed_requested.connect(_on_starseed_requested)
 	player.extractor_requested.connect(_on_extractor_requested)
 	player.state_changed.connect(_on_player_state_changed)
@@ -52,6 +56,7 @@ func _ready() -> void:
 	_create_objective()
 	_select_seed(0)
 	_reset_demo()
+	_update_gravity_diagnostics()
 	queue_redraw()
 
 
@@ -63,6 +68,7 @@ func _process(delta: float) -> void:
 		_refresh_hud(material_world.get_stats())
 	if player.has_method("get_cooldown_ratio"):
 		hud.set_cooldown(player.get_cooldown_ratio())
+	_update_gravity_diagnostics()
 	queue_redraw()
 
 
@@ -77,6 +83,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				_select_seed(2)
 			KEY_R:
 				_reset_demo()
+			KEY_F3:
+				if is_instance_valid(gravity_overlay):
+					gravity_overlay.set_enabled(not gravity_overlay.enabled)
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_select_seed(selected_seed_index - 1)
@@ -143,7 +152,13 @@ func _on_starseed_requested(origin: Vector2, launch_velocity: Vector2, seed_type
 	var starseed := STARSEED_SCRIPT.new()
 	add_child(starseed)
 	starseed.z_index = 11
-	starseed.setup(material_world, origin, launch_velocity, seed_type)
+	starseed.setup(
+		material_world,
+		origin,
+		launch_velocity,
+		seed_type,
+		gravity_runtime.get_provider() if is_instance_valid(gravity_runtime) else null
+	)
 	starseed.impacted.connect(_on_starseed_impacted)
 	hud.flash_message("%s已释放。" % str(SEED_DATA[seed_type]["name"]), SEED_DATA[seed_type]["color"])
 	_refresh_hud(material_world.get_stats())
@@ -275,6 +290,8 @@ func _reset_demo() -> void:
 		enemy.remove_from_group("enemies")
 		enemy.queue_free()
 	material_world.reset_world()
+	if is_instance_valid(gravity_runtime):
+		gravity_runtime.reset_runtime()
 	player.reset_player(Vector2(320.0, 10.0))
 	_objective.reset_objective()
 	recovered_shards = 0
@@ -286,3 +303,37 @@ func _reset_demo() -> void:
 	_update_objective_hud()
 	hud.flash_message("击败三只物质生物，回收坠核尘。", Color("f0bc67"))
 	_refresh_hud(material_world.get_stats())
+	_update_gravity_diagnostics()
+
+
+func _update_gravity_diagnostics() -> void:
+	if not is_instance_valid(gravity_overlay) or not is_instance_valid(gravity_runtime):
+		return
+	var frame: GravityFrame = player.get_gravity_frame() if player.has_method("get_gravity_frame") else null
+	if frame == null:
+		return
+	var snapshot := gravity_runtime.get_snapshot()
+	snapshot["position"] = player.global_position
+	snapshot["acceleration"] = frame.acceleration
+	snapshot["magnitude"] = frame.magnitude
+	snapshot["dominant_source_id"] = frame.dominant_source_id
+	snapshot["zero_gravity"] = frame.zero_gravity
+	snapshot["transitioning"] = frame.transitioning
+	snapshot["velocity"] = player.velocity
+	snapshot["predicted_acceleration"] = frame.predicted_acceleration
+	snapshot["predicted_magnitude"] = frame.predicted_magnitude
+	snapshot["predicted_dominant_source_id"] = frame.predicted_dominant_source_id
+	snapshot["predicted_zero_gravity"] = frame.predicted_zero_gravity
+	gravity_overlay.set_gravity_snapshot(snapshot)
+	gravity_overlay.set_primary_snapshot(
+		material_world.primary_gravity_center,
+		material_world.primary_surface_radius,
+		"inside-linear/outside-inverse-square"
+	)
+	gravity_overlay.set_local_sources(gravity_runtime.get_provider().get_source_snapshots())
+	var warnings := PackedStringArray()
+	if not bool(snapshot.get("enabled", false)):
+		warnings.append(str(snapshot.get("last_diagnostic", "native gravity unavailable")))
+	if frame.sample_limit_reached:
+		warnings.append("gravity sample limit reached")
+	gravity_overlay.set_warnings(warnings)
