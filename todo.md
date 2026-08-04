@@ -245,7 +245,7 @@ P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为
 
 ## P4 终审阻断修复状态（2026-08-05）
 
-- [ ] 从 `origin/main=cf4f6ee` 建立 `C:\tmp\starfall-p4-gravity-review-fixes-20260805` / `codex/p4-gravity-review-fixes`；运行链提交为 `b5d5741`，硬化提交为 `4b162c1`，已推送最终 head `a20959d` 并创建目标为 `main` 的 Draft PR #24。
+- [ ] 从 `origin/main=cf4f6ee` 建立 `C:\tmp\starfall-p4-gravity-review-fixes-20260805` / `codex/p4-gravity-review-fixes`；运行链提交为 `b5d5741`，硬化提交为 `4b162c1`，实现 head `a20959d` 已推送并创建目标为 `main` 的 Draft PR #24，状态对账提交随后已推送。
 - [ ] 收敛共享 `NativeGravityRuntime`：正式主场景只持有一个 host/provider，按 30 Hz、最多三步推进，并在星种命令、Native tick、玩家采样之间保持固定顺序；reset 清理映射且不被旧星种延迟删除污染。
 - [ ] 收敛 provider ID 命名空间、MaterialWorld 常向量 shadow、带符号径向场、TTL 更新保留和 `accepted/invalid/duplicate/not_found` 结果码。
 - [ ] 收敛当前位置/预测位置同批同 tick 采样、15° `transitioning` 诊断、正式 F3 诊断叠层和 >30,720 px/s 子步上限 benchmark。
