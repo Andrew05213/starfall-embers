@@ -253,3 +253,8 @@ jobs:
         run: >-
           "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
           --headless --path game --script res://tests/gravity_transition_smoke.gd
+
+      - name: Verify formal native gravity runtime ownership
+        run: >-
+          "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          --headless --path game --script res://tests/native_gravity_runtime_smoke.gd

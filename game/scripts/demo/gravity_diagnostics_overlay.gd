@@ -67,10 +67,19 @@ func _draw() -> void:
 		str(_gravity_snapshot.get("zero_gravity", false)),
 		str(_gravity_snapshot.get("transitioning", false)),
 	])
-	lines.append("velocity=%s  substeps=%s  sample_limit=%s" % [
+	lines.append("predicted_source=%s  predicted_zero=%s" % [
+		str(_gravity_snapshot.get("predicted_dominant_source_id", 0)),
+		str(_gravity_snapshot.get("predicted_zero_gravity", false)),
+	])
+	lines.append("velocity=%s  predicted=%s  predicted_magnitude=%.3f" % [
 		str(_gravity_snapshot.get("velocity", Vector2.ZERO)),
-		str(_gravity_snapshot.get("substeps", 0)),
+		str(_gravity_snapshot.get("predicted_acceleration", Vector2.ZERO)),
+		float(_gravity_snapshot.get("predicted_magnitude", 0.0)),
+	])
+	lines.append("sample_limit=%s  native_tick=%s  fixed_hz=%s" % [
 		str(_gravity_snapshot.get("sample_limit_reached", false)),
+		str(_gravity_snapshot.get("native_tick", 0)),
+		str(_gravity_snapshot.get("fixed_hz", 0)),
 	])
 	if not _dirty_chunks.is_empty():
 		lines.append("dirty chunks (transport only; not activation scheduling): %d" % _dirty_chunks.size())
@@ -85,6 +94,14 @@ func _draw() -> void:
 	lines.append("local fields: %d" % _local_sources.size())
 	for warning in _warnings:
 		lines.append("WARNING: " + warning)
+	for source in _local_sources:
+		var field_name := "uniform" if int(source.get("field_kind", 0)) == 1 else "radial"
+		lines.append("source %s %s r=%.1f remaining=%s" % [
+			str(source.get("source_id", 0)),
+			field_name,
+			float(source.get("radius", 0.0)),
+			str(source.get("remaining_ticks", -1)),
+		])
 	for index in lines.size():
 		draw_string(font, Vector2(12.0, 24.0 + index * 18.0), lines[index],
 			HORIZONTAL_ALIGNMENT_LEFT, -1.0, 14, Color(0.85, 0.95, 1.0))
@@ -96,7 +113,7 @@ func _draw() -> void:
 			draw_arc(primary_center, primary_radius, 0.0, TAU, 96,
 				Color(0.3, 0.7, 1.0, 0.45), 1.5)
 	for source in _local_sources:
-		var center: Vector2 = source.get("center", Vector2.ZERO)
+		var center: Vector2 = source.get("position", source.get("center", Vector2.ZERO))
 		var radius := float(source.get("radius", 0.0))
 		if radius > 0.0:
 			draw_arc(center, radius, 0.0, TAU, 48, Color(1.0, 0.75, 0.25, 0.55), 1.0)

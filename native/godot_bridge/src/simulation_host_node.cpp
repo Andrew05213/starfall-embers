@@ -341,6 +341,7 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
 
     gravity_command_results_.version = starfall::sim::gravity_transport_dto_version;
     gravity_command_results_.tick = host_.tick();
+    gravity_command_results_.results.clear();
     try {
         host_.submit_gravity_source_commands(std::move(batch));
         for (std::int64_t index = 0; index < count; ++index) {
@@ -350,6 +351,22 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
                 .source_id = static_cast<std::uint64_t>(source_ids[index]),
             });
         }
+    } catch (const starfall::sim::GravityCommandError& error) {
+        for (std::int64_t index = 0; index < count; ++index) {
+            gravity_command_results_.results.push_back({
+                .request_id = static_cast<std::uint64_t>(request_ids[index]),
+                .code = starfall::sim::GravitySourceCommandResultCode::invalid,
+                .source_id = static_cast<std::uint64_t>(source_ids[index]),
+            });
+        }
+        for (auto& result : gravity_command_results_.results) {
+            if (result.request_id == error.request_id()) {
+                result.code = error.code();
+                result.source_id = error.source_id();
+                break;
+            }
+        }
+        return false;
     } catch (const std::exception&) {
         for (std::int64_t index = 0; index < count; ++index) {
             gravity_command_results_.results.push_back({

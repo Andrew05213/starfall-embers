@@ -119,7 +119,6 @@ void GravityField::validate_source(const LocalGravitySource& source) {
         || !is_finite(source.center)
         || !is_finite(source.vector)
         || !std::isfinite(source.strength)
-        || source.strength < 0.0
         || !std::isfinite(source.radius)
         || source.radius <= 0.0) {
         throw std::invalid_argument("local gravity source is invalid");
@@ -134,22 +133,60 @@ void GravityField::validate_command_batch(const GravitySourceCommandBatch& batch
     added.reserve(batch.commands.size());
     for (const auto& command : batch.commands) {
         if (command.kind == GravitySourceCommandKind::add) {
-            validate_source(command.source);
+            try {
+                validate_source(command.source);
+            } catch (const std::invalid_argument& error) {
+                throw GravityCommandError(
+                    error.what(),
+                    GravitySourceCommandResultCode::invalid,
+                    command.request_id,
+                    command.source.source_id
+                );
+            }
             if (std::find(added.begin(), added.end(), command.source.source_id) != added.end()) {
-                throw std::invalid_argument("duplicate local gravity source in batch");
+                throw GravityCommandError(
+                    "duplicate local gravity source in batch",
+                    GravitySourceCommandResultCode::duplicate,
+                    command.request_id,
+                    command.source.source_id
+                );
             }
             added.push_back(command.source.source_id);
         } else if (command.kind == GravitySourceCommandKind::update) {
-            validate_source(command.source);
+            try {
+                validate_source(command.source);
+            } catch (const std::invalid_argument& error) {
+                throw GravityCommandError(
+                    error.what(),
+                    GravitySourceCommandResultCode::invalid,
+                    command.request_id,
+                    command.source_id
+                );
+            }
             if (command.source.source_id != command.source_id || command.source_id == 0) {
-                throw std::invalid_argument("gravity update source ID mismatch");
+                throw GravityCommandError(
+                    "gravity update source ID mismatch",
+                    GravitySourceCommandResultCode::invalid,
+                    command.request_id,
+                    command.source_id
+                );
             }
         } else if (command.kind == GravitySourceCommandKind::remove) {
             if (command.source_id == 0) {
-                throw std::invalid_argument("gravity remove source ID is invalid");
+                throw GravityCommandError(
+                    "gravity remove source ID is invalid",
+                    GravitySourceCommandResultCode::invalid,
+                    command.request_id,
+                    command.source_id
+                );
             }
         } else {
-            throw std::invalid_argument("unknown gravity source command");
+            throw GravityCommandError(
+                "unknown gravity source command",
+                GravitySourceCommandResultCode::invalid,
+                command.request_id,
+                command.source_id
+            );
         }
     }
 }
@@ -168,17 +205,32 @@ void GravityField::apply(GravitySourceCommandBatch batch) {
         );
         if (command.kind == GravitySourceCommandKind::add) {
             if (found != next_sources.end()) {
-                throw std::invalid_argument("local gravity source already exists");
+                throw GravityCommandError(
+                    "local gravity source already exists",
+                    GravitySourceCommandResultCode::duplicate,
+                    command.request_id,
+                    id
+                );
             }
             next_sources.push_back(command.source);
         } else if (command.kind == GravitySourceCommandKind::update) {
             if (found == next_sources.end()) {
-                throw std::invalid_argument("local gravity source does not exist");
+                throw GravityCommandError(
+                    "local gravity source does not exist",
+                    GravitySourceCommandResultCode::not_found,
+                    command.request_id,
+                    id
+                );
             }
             *found = command.source;
         } else {
             if (found == next_sources.end()) {
-                throw std::invalid_argument("local gravity source does not exist");
+                throw GravityCommandError(
+                    "local gravity source does not exist",
+                    GravitySourceCommandResultCode::not_found,
+                    command.request_id,
+                    id
+                );
             }
             next_sources.erase(found);
         }

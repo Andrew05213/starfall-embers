@@ -4,6 +4,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace starfall::sim {
@@ -58,6 +61,34 @@ enum class GravitySourceCommandResultCode : std::uint8_t {
     invalid = 1,
     duplicate = 2,
     not_found = 3,
+};
+
+/// Atomic gravity command failure with a stable DTO-facing reason.
+///
+/// The command batch remains unapplied when this exception is thrown.  The
+/// bridge uses the attached request/source identifiers to preserve duplicate
+/// and not-found diagnostics instead of collapsing every failure to invalid.
+class GravityCommandError final : public std::invalid_argument {
+public:
+    GravityCommandError(
+        std::string message,
+        GravitySourceCommandResultCode code,
+        std::uint64_t request_id,
+        GravitySourceId source_id
+    )
+        : std::invalid_argument(std::move(message)),
+          code_(code),
+          request_id_(request_id),
+          source_id_(source_id) {}
+
+    [[nodiscard]] GravitySourceCommandResultCode code() const noexcept { return code_; }
+    [[nodiscard]] std::uint64_t request_id() const noexcept { return request_id_; }
+    [[nodiscard]] GravitySourceId source_id() const noexcept { return source_id_; }
+
+private:
+    GravitySourceCommandResultCode code_ = GravitySourceCommandResultCode::invalid;
+    std::uint64_t request_id_ = 0;
+    GravitySourceId source_id_ = 0;
 };
 
 struct GravitySourceCommandResult final {

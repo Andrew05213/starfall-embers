@@ -48,6 +48,7 @@ contracts = {
         "extract_circle",
         "paint_circle",
         "add_gravity_source",
+        "add_uniform_gravity_source",
         "update_gravity_source",
         "remove_gravity_source",
         "get_stats",
@@ -235,9 +236,11 @@ for function in (
     if re.search(rf"^func\s+{re.escape(function)}\s*\(", diagnostics_overlay, re.MULTILINE) is None:
         fail(f"gravity_diagnostics_overlay.gd lacks func {function}()")
 for relative in (
+    "scripts/simulation/native_gravity_runtime.gd",
     "tests/native_gravity_bridge_smoke.gd",
     "tests/gravity_shadow_smoke.gd",
     "tests/gravity_transition_smoke.gd",
+    "tests/native_gravity_runtime_smoke.gd",
 ):
     require_text(GAME / relative)
 

@@ -24,6 +24,22 @@ func _init() -> void:
 	assert(command_results.codes == PackedInt32Array([0]))
 	assert(command_results.source_ids == PackedInt64Array([41]))
 
+	var duplicate_accepted := host.submit_gravity_source_commands(
+		1,
+		PackedInt32Array([0]),
+		PackedInt32Array([0]),
+		PackedInt64Array([42]),
+		PackedInt64Array([41]),
+		PackedVector2Array([Vector2(100.0, 100.0)]),
+		PackedVector2Array([Vector2.ZERO]),
+		PackedFloat64Array([100.0]),
+		PackedFloat64Array([100.0]),
+		PackedInt64Array([2])
+	)
+	assert(not duplicate_accepted)
+	var duplicate_results: Dictionary = host.drain_gravity_source_command_result_batch()
+	assert(duplicate_results.codes == PackedInt32Array([2]))
+
 	host.step_fixed()
 	var query := host.sample_gravity_batch(
 		1,
@@ -45,6 +61,22 @@ func _init() -> void:
 		PackedVector2Array([Vector2(80.0, 100.0)])
 	)
 	assert(expired.dominant_source_ids[0] == 0)
+
+	var remove_accepted := host.submit_gravity_source_commands(
+		1,
+		PackedInt32Array([2]),
+		PackedInt32Array([0]),
+		PackedInt64Array([43]),
+		PackedInt64Array([41]),
+		PackedVector2Array([Vector2.ZERO]),
+		PackedVector2Array([Vector2.ZERO]),
+		PackedFloat64Array([0.0]),
+		PackedFloat64Array([1.0]),
+		PackedInt64Array([0])
+	)
+	assert(not remove_accepted)
+	var missing_results: Dictionary = host.drain_gravity_source_command_result_batch()
+	assert(missing_results.codes == PackedInt32Array([3]))
 
 	host.free()
 	print("native_gravity_bridge_smoke: PASS")

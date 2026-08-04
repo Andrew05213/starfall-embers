@@ -35,5 +35,36 @@ func _init() -> void:
 	assert(not frame.zero_gravity)
 	assert(frame.up == Vector2.UP)
 
+	# A fast crossing uses the current and predicted samples from one batch. A
+	# direction reversal is a transition even when neither sample is zero-gravity.
+	frame.update_from_samples({
+		"tick": 5,
+		"acceleration": Vector2(0.0, 100.0),
+		"magnitude": 100.0,
+		"dominant_source_id": 11,
+	}, {
+		"tick": 5,
+		"acceleration": Vector2(0.0, -100.0),
+		"magnitude": 100.0,
+		"dominant_source_id": 12,
+	}, frame.up, frame.tangent, false)
+	assert(frame.transitioning)
+	assert(frame.dominant_source_id == 11)
+	assert(frame.up == Vector2.UP)
+	var stable_tangent := frame.tangent
+	frame.update_from_samples({
+		"tick": 6,
+		"acceleration": Vector2(0.0, -100.0),
+		"magnitude": 100.0,
+		"dominant_source_id": 12,
+	}, {
+		"tick": 6,
+		"acceleration": Vector2(0.0, -100.0),
+		"magnitude": 100.0,
+		"dominant_source_id": 12,
+	}, frame.up, stable_tangent, false)
+	assert(frame.up == Vector2.DOWN)
+	assert(frame.tangent.dot(stable_tangent) >= 0.0)
+
 	print("gravity transition smoke: PASS")
 	quit(0)
