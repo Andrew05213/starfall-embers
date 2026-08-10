@@ -314,3 +314,8 @@
 - This is recorded as a runner/infrastructure blocker, not an implementation verdict. Do not change the repair commits, bypass branch protection, promote the PR, merge PR #23, or run the final GPT-5.6-sol xhigh review until a later run executes real steps and passes.
 - The protected main worktree and all previously listed Saga/LFS/material/activation boundaries remain unchanged. Next action is a fresh CI verification after Actions recovers; no code edits are authorized by this status update.
 - A second reproduction after the status push is confirmed: push run `30932535171` and pull-request run `30932538978` again completed all four jobs with empty `steps` and no logs. No further retries are being triggered in this turn.
+
+## 25. Latest PR #24 CI confirmation (2026-08-11)
+
+- The latest inspected implementation head is `e2573bba2ecb1f4a92c5c9108ce397d1e8b7fa69`. Push run `30932633348` and pull-request run `30932643547` both completed with failure before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` all report `steps=[]`, with no job logs available.
+- PR #24 remains Draft and no GPT-5.6-sol xhigh review, Ready transition, merge, or PR #23 closure is authorized until both workflow events execute real build/test steps and pass. This status-only update does not alter implementation files.
