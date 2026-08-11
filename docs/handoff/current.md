@@ -324,3 +324,8 @@
 
 - After the documentation status head `7ad7909`, push run `31416784259` and pull-request run `31416788760` again completed with failure before any job step; all four jobs report `steps=[]` and no logs.
 - PR #24 remains Draft. The implementation is unchanged, and the GPT-5.6-sol xhigh review/Ready/merge sequence remains deferred until real CI steps execute and both workflow events pass.
+
+## 27. Latest runner check (2026-08-11)
+
+- For current head `57c6b22`, push run `31416891070` and pull-request run `31416895461` again completed before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` all have empty `steps` arrays and no logs.
+- PR #24 remains Draft. This is another infrastructure-only confirmation; no implementation, review, Ready transition, merge, or PR #23 closure was performed.
