@@ -5,9 +5,9 @@
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
-> 最近一次路线图对账：PR #24 已通过真实 push/PR CI 与 GPT-5.6-sol xhigh 终审并合并，P4
-> 原生重力、角色和镜头范围完成验收。下一项是从最新 main 定向收敛 PR #7；真实区块
-> activation scheduling 仍是独立 P3 后续项，不能与萨迦素材工作线混入。
+> 最近一次路线图对账：P4 已完成验收；PR #7 正在从最新 `main` 的独立 worktree 定向重建。
+> 其范围固定为 22 个候选资产/目录实现文件与两份状态文档，合并前保持未完成。真实区块
+> activation scheduling 仍是独立 P3 后续项。
 
 ## 使用规则
 
@@ -55,7 +55,8 @@
 - [x] 把 PR #5 改为以 `main` 为 base，确认仍只有预期的 16 个内容、编译器、文档和 CI 文件。
 - [x] 重新运行 TypeScript、内容生成一致性、内容测试、CTest 和 Godot 合约检查。
 - [x] CI 全绿并完成审查后合并 PR #5。
-- [ ] 将萨迦概念候选台账和 16 张候选 PNG 放入独立分支；不得混入设计基线或 PR #5。
+- [ ] 将萨迦概念候选台账和 16 张候选 PNG 放入独立分支；本地重建与内容/LFS 验证已完成，
+      等待 PR #7 最终远端 CI、LFS 干净恢复、审查与合并后核销。
 
 验收门槛：冻结决策、Schema、运行时 JSON 和可读规格在 `main` 上一致，错误引用和非法状态
 由 CI 阻止。
@@ -254,7 +255,6 @@ P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为
 - [x] 修复桥接值校验提前返回导致的缺失/陈旧结果；提交 `60dcf66` 增加稳定 `invalid` 结果与 stale-result 回归测试。
 - [x] 最终验收状态已通过 PR #25（merge `0b53174`）进入 `main`；被 PR #24 取代的 Draft PR #23 已关闭且未合并实现。
 
-保护边界：不触碰主工作区、`game/project.godot`、PR #7、萨迦/LFS 素材、material DTO v1、材质编号、64×64 区块协议或 P3 激活调度。
-
-当前动作：提交并推送 shadow smoke tick 断言修复，等待新 head 两组完整 CI；全绿前保持 Draft，
-不启动终审或 PR #7 收敛。
+PR #7 收敛边界：只包含 16 张 `concept-candidate` PNG、资产目录/Schema/生成文档、两处
+`contentc` 支持和两份状态文档；不接入正式场景，不包含 `game/project.godot`、后续生产素材、
+P4/native 文件或 P3 激活调度。
