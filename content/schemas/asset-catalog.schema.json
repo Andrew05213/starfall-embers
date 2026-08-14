@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://starfall.example/schemas/asset-catalog.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_id", "title", "assets"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "catalog_id": { "const": "saga-concept-candidates" },
+    "title": { "type": "string", "minLength": 1 },
+    "assets": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "location_id", "kind", "purpose", "target_size", "status", "prompt", "source_path", "variants", "alpha_processing", "audit", "prohibited_integration_reason"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^saga\\.[a-z0-9.-]+$" },
+          "location_id": { "type": "string", "pattern": "^saga\\." },
+          "kind": { "enum": ["environment", "device", "character"] },
+          "purpose": { "type": "string", "minLength": 1 },
+          "target_size": {
+            "type": "object", "additionalProperties": false, "required": ["width", "height", "concept_aspect"],
+            "properties": { "width": { "enum": [160, 64] }, "height": { "enum": [90, 64] }, "concept_aspect": { "type": "string" } }
+          },
+          "status": { "const": "concept-candidate" },
+          "prompt": { "type": "string", "minLength": 20 },
+          "source_path": { "type": "string", "pattern": "^project_reference/" },
+          "variants": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "alpha_processing": { "enum": ["not-applicable", "chroma-key-removed"] },
+          "audit": {
+            "type": "object", "additionalProperties": false, "required": ["conclusion", "checks"],
+            "properties": { "conclusion": { "enum": ["approved-concept-candidate", "needs-regeneration"] }, "checks": { "type": "array", "minItems": 1, "items": { "type": "string" } } }
+          },
+          "prohibited_integration_reason": { "type": "string", "minLength": 10 }
+        }
+      }
+    },
+    "planned_variants": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "status", "prompt"], "properties": { "id": { "type": "string", "pattern": "^saga\\." }, "status": { "const": "specification-only" }, "prompt": { "type": "string", "minLength": 20 } } } }
+  }
+}

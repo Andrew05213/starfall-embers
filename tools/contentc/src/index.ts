@@ -35,6 +35,29 @@ export type Slice = {
   asset_specs: JsonObject[];
 };
 
+export type ConceptAsset = {
+  id: string;
+  location_id: string;
+  kind: "environment" | "device" | "character";
+  purpose: string;
+  target_size: { width: 160 | 64; height: 90 | 64; concept_aspect: string };
+  status: "concept-candidate";
+  prompt: string;
+  source_path: string;
+  variants: string[];
+  alpha_processing: "not-applicable" | "chroma-key-removed";
+  audit: { conclusion: "approved-concept-candidate" | "needs-regeneration"; checks: string[] };
+  prohibited_integration_reason: string;
+};
+
+export type AssetCatalog = {
+  schema_version: 1;
+  catalog_id: "saga-concept-candidates";
+  title: string;
+  assets: ConceptAsset[];
+  planned_variants?: { id: string; status: "specification-only"; prompt: string }[];
+};
+
 type Output = { path: string; content: string };
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -70,17 +93,22 @@ function requireCondition(condition: unknown, message: string): asserts conditio
   }
 }
 
-export function validateSchemas(register: DecisionRegister, slice: Slice): void {
+export function validateSchemas(register: DecisionRegister, slice: Slice, catalog?: AssetCatalog): void {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
   const registerSchema = readJson(join(contentRoot, "schemas", "decision-register.schema.json"));
   const sliceSchema = readJson(join(contentRoot, "schemas", "vertical-slice.schema.json"));
+  const catalogSchema = readJson(join(contentRoot, "schemas", "asset-catalog.schema.json"));
   const validateRegister = ajv.compile(registerSchema);
   const validateSlice = ajv.compile(sliceSchema);
+  const validateCatalog = ajv.compile(catalogSchema);
   requireCondition(validateRegister(register), `decision register schema: ${formatErrors(validateRegister.errors)}`);
   requireCondition(validateSlice(slice), `vertical slice schema: ${formatErrors(validateSlice.errors)}`);
+  if (catalog) {
+    requireCondition(validateCatalog(catalog), `asset catalog schema: ${formatErrors(validateCatalog.errors)}`);
+  }
 }
 
-export function validateSemantics(register: DecisionRegister, slice: Slice): void {
+export function validateSemantics(register: DecisionRegister, slice: Slice, catalog?: AssetCatalog): void {
   const decisionById = new Map<string, Decision>();
   for (const decision of register.decisions) {
     requireCondition(!decisionById.has(decision.id), `duplicate decision id: ${decision.id}`);
@@ -134,6 +162,32 @@ export function validateSemantics(register: DecisionRegister, slice: Slice): voi
     requireCondition(asset.production_status === "specification-only", `asset is not specification-only: ${asset.id}`);
     requireCondition(!("source_asset" in asset), `asset may not reference an unverified geology candidate: ${asset.id}`);
   }
+
+  if (!catalog) return;
+  const requiredIds = [
+    "saga.outer-day-city.pre-rotation", "saga.inner-sea-dome.pre-rotation", "saga.no-down-city.pre-rotation", "saga.axis-pillar.pre-rotation", "saga.dual-pivot-chamber.pre-rotation",
+    "saga.outer-day-city.post-rotation", "saga.inner-sea-dome.post-rotation", "saga.no-down-city.post-rotation", "saga.axis-pillar.post-rotation", "saga.dual-pivot-chamber.post-rotation",
+    "saga.outer-light-clock.device", "saga.inner-tide-clock.device", "saga.neutral-free-gyroscope.device",
+    "saga.xiu.character", "saga.fanzhi.character", "saga.yang.character"
+  ];
+  const assetIds = new Set<string>();
+  for (const asset of catalog.assets) {
+    requireCondition(!assetIds.has(asset.id), `duplicate asset id: ${asset.id}`);
+    assetIds.add(asset.id);
+    requireCondition(asset.status === "concept-candidate", `asset is not a concept candidate: ${asset.id}`);
+    requireCondition(!asset.source_path.startsWith("game/assets/"), `candidate may not reference game/assets: ${asset.id}`);
+    requireCondition(asset.source_path.includes("/素材/萨迦/概念候选/"), `candidate source is not isolated: ${asset.id}`);
+    requireCondition(!asset.source_path.includes("井星") && !asset.source_path.includes("地质背景"), `candidate may not reference Well geology: ${asset.id}`);
+    requireCondition(existsSync(join(root, asset.source_path)), `missing candidate source image: ${asset.source_path}`);
+    const environment = asset.kind === "environment";
+    requireCondition(environment ? asset.target_size.width === 160 && asset.target_size.height === 90 : asset.target_size.width === 64 && asset.target_size.height === 64, `wrong target size: ${asset.id}`);
+    requireCondition(environment ? asset.alpha_processing === "not-applicable" : asset.alpha_processing === "chroma-key-removed", `missing alpha processing: ${asset.id}`);
+    requireCondition(asset.prohibited_integration_reason.length > 10, `candidate lacks integration prohibition: ${asset.id}`);
+  }
+  for (const id of requiredIds) requireCondition(assetIds.has(id), `missing required Saga candidate: ${id}`);
+  requireCondition(catalog.assets.length === requiredIds.length, "Saga catalog must contain exactly the 16 generated candidates");
+  const planned = catalog.planned_variants ?? [];
+  requireCondition(planned.length === 5 && planned.every((variant) => variant.id.endsWith(".during-rotation")), "catalog must reserve five during-rotation specifications");
 }
 
 function markdownEscape(value: string): string {
@@ -209,12 +263,35 @@ function renderSlice(slice: Slice): string {
   ].join("\n");
 }
 
-function outputs(register: DecisionRegister, slice: Slice): Output[] {
+function renderAssetCatalog(catalog: AssetCatalog): string {
+  const rows = catalog.assets.map((asset) => `| \`${asset.id}\` | ${asset.kind} | ${asset.location_id} | ${asset.target_size.width}×${asset.target_size.height} | ${asset.alpha_processing} | ${asset.audit.conclusion} |`).join("\n");
+  const future = (catalog.planned_variants ?? []).map((variant) => `- \`${variant.id}\`：仅保留生成规格，未纳入本批 16 张候选。`).join("\n");
+  return [
+    `# ${catalog.title}`,
+    "",
+    "> 自动生成自 `content/src/assets/saga-concept-candidates.json`；请勿手改。",
+    "",
+    "所有条目均为概念候选：不属于生产资产，不接入 `game/assets`，后续仍需像素网格重建、限色、拆件与引擎验收。",
+    "",
+    "| ID | 类型 | 地点 | 目标逻辑尺寸 | Alpha | 审核 |",
+    "| --- | --- | --- | --- | --- | --- |",
+    rows,
+    "",
+    "## 预留的轮坠中规格",
+    "",
+    future,
+    ""
+  ].join("\n");
+}
+
+function outputs(register: DecisionRegister, slice: Slice, catalog: AssetCatalog): Output[] {
   return [
     { path: join(contentRoot, "generated", "design", "decision-register.json"), content: formatJson(register) },
     { path: join(contentRoot, "generated", "slices", "well-saga-first-slice.json"), content: formatJson(slice) },
     { path: join(root, "docs", "design", "decision-register.md"), content: renderDecisionRegister(register) },
-    { path: join(root, "docs", "design", "well-saga-first-slice.md"), content: renderSlice(slice) }
+    { path: join(root, "docs", "design", "well-saga-first-slice.md"), content: renderSlice(slice) },
+    { path: join(contentRoot, "generated", "assets", "saga-concept-candidates.json"), content: formatJson(catalog) },
+    { path: join(root, "docs", "design", "saga-concept-candidates.md"), content: renderAssetCatalog(catalog) }
   ];
 }
 
@@ -236,9 +313,10 @@ async function main(): Promise<void> {
   requireCondition(command === "validate" || command === "build" || command === "check", "usage: contentc <validate|build|check>");
   const register = readJson(join(contentRoot, "src", "design", "decision-register.json")) as DecisionRegister;
   const slice = readJson(join(contentRoot, "src", "slices", "well-saga-first-slice.json")) as Slice;
-  validateSchemas(register, slice);
-  validateSemantics(register, slice);
-  const allOutputs = outputs(register, slice);
+  const catalog = readJson(join(contentRoot, "src", "assets", "saga-concept-candidates.json")) as AssetCatalog;
+  validateSchemas(register, slice, catalog);
+  validateSemantics(register, slice, catalog);
+  const allOutputs = outputs(register, slice, catalog);
   if (command === "build") {
     await build(allOutputs);
   } else if (command === "check") {

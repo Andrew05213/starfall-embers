@@ -1,0 +1,502 @@
+{
+  "assets": [
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "clear stable gravity",
+          "no text or UI",
+          "readable depth"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.outer-day-city.pre-rotation",
+      "kind": "environment",
+      "location_id": "saga.outer-day-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Outer Day City before rotation; dark industrial cosmic pixel concept, stable gravity and daylight shell city.",
+      "purpose": "轮坠前外昼城空间、承重结构与稳定重力方向基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_outer_day_city_pre_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "inward gravity",
+          "no text or UI",
+          "readable water volume"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.inner-sea-dome.pre-rotation",
+      "kind": "environment",
+      "location_id": "saga.inner-sea-dome",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Inner Sea Dome before rotation; concave inner sea, inward gravity, tide anchors and industrial pixel concept.",
+      "purpose": "轮坠前内海穹的内向水体与潮钟连接基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_inner_sea_dome_pre_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "no single down",
+          "no text or UI",
+          "bilateral readability"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.no-down-city.pre-rotation",
+      "kind": "environment",
+      "location_id": "saga.no-down-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga No-Down City before rotation; bilateral architecture and neutral gravity industrial cosmic pixel concept.",
+      "purpose": "轮坠前无下城双向居住与中性重力基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_no_down_city_pre_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "gravity direction",
+          "no text or UI",
+          "core support retained"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.axis-pillar.pre-rotation",
+      "kind": "environment",
+      "location_id": "saga.axis-pillar",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Axis Pillar before rotation; protected load-bearing pillar, dormant rings and visible gravity streams.",
+      "purpose": "轮坠前贯轴柱、断裂修缮与重力流走向基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_axis_pillar_pre_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "core retained",
+          "no text or UI",
+          "mechanical silhouette"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.dual-pivot-chamber.pre-rotation",
+      "kind": "environment",
+      "location_id": "saga.dual-pivot-chamber",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Dual Pivot Chamber before rotation; dormant counter-rotating rings around a sealed retained gravity core.",
+      "purpose": "轮坠前双枢室、封存坠核与反向环结构基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_dual_pivot_chamber_pre_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "revised gravity",
+          "no text or UI",
+          "maintenance not catastrophe"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.outer-day-city.post-rotation",
+      "kind": "environment",
+      "location_id": "saga.outer-day-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Outer Day City after rotation; gravity flip survives through anchors, cargo rails and maintained orientation.",
+      "purpose": "第一次轮坠后外昼城的可预测翻转与锚定维护基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_outer_day_city_post_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "revised gravity",
+          "no text or UI",
+          "controlled water flow"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.inner-sea-dome.post-rotation",
+      "kind": "environment",
+      "location_id": "saga.inner-sea-dome",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Inner Sea Dome after rotation; tide buffers route water under revised gravity with maintenance pressure.",
+      "purpose": "第一次轮坠后内海穹潮汐缓冲与新方向基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_inner_sea_dome_post_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "two orientations",
+          "no text or UI",
+          "ongoing maintenance"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.no-down-city.post-rotation",
+      "kind": "environment",
+      "location_id": "saga.no-down-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga No-Down City after rotation; two orientations coexist under symmetric tethered maintenance.",
+      "purpose": "第一次轮坠后无下城两面适应与中和维护基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_no_down_city_post_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "periodic gravity",
+          "no text or UI",
+          "pillar retained"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.axis-pillar.post-rotation",
+      "kind": "environment",
+      "location_id": "saga.axis-pillar",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Axis Pillar after rotation; restored periodic gravity rhythm and maintained load-bearing structure.",
+      "purpose": "第一次轮坠后贯轴柱恢复周期性坠律的基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_axis_pillar_post_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "sealed core retained",
+          "no text or UI",
+          "synchronized rings"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.dual-pivot-chamber.post-rotation",
+      "kind": "environment",
+      "location_id": "saga.dual-pivot-chamber",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Dual Pivot Chamber after rotation; synchronized rings, predictable transition, sealed core retained.",
+      "purpose": "第一次轮坠后双枢同步、坠核仍被封存的基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_dual_pivot_chamber_post_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "pre-rotation",
+        "during-rotation",
+        "post-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "silhouette",
+          "palette"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.outer-light-clock.device",
+      "kind": "device",
+      "location_id": "saga.outer-day-city",
+      "prohibited_integration_reason": "Concept candidate only; needs 64x64 pixel rebuild, animation parts and engine acceptance.",
+      "prompt": "Isolated Outer Light Clock with heliostat shutters, charcoal red bone-ceramic and cyan light on magenta key.",
+      "purpose": "外昼光钟校准交互的装置轮廓基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/装置/saga_outer_light_clock_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; rebuild at 64x64",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "calibration-ready"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "silhouette",
+          "palette"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.inner-tide-clock.device",
+      "kind": "device",
+      "location_id": "saga.inner-sea-dome",
+      "prohibited_integration_reason": "Concept candidate only; needs 64x64 pixel rebuild, animation parts and engine acceptance.",
+      "prompt": "Isolated Inner Sea Tide Clock with valves, pressure chambers and tide tube on magenta key.",
+      "purpose": "内海潮钟校准交互的装置轮廓基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/装置/saga_inner_tide_clock_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; rebuild at 64x64",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "calibration-ready"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "silhouette",
+          "palette"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.neutral-free-gyroscope.device",
+      "kind": "device",
+      "location_id": "saga.no-down-city",
+      "prohibited_integration_reason": "Concept candidate only; needs 64x64 pixel rebuild, animation parts and engine acceptance.",
+      "prompt": "Isolated No-Down Free Gyroscope with double rings and stabilizer clamps on magenta key.",
+      "purpose": "无下城自由陀仪校准交互的装置轮廓基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/装置/saga_neutral_free_gyroscope_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; rebuild at 64x64",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "calibration-ready"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "distinct silhouette",
+          "20px rebuild noted"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.xiu.character",
+      "kind": "character",
+      "location_id": "saga.outer-day-city",
+      "prohibited_integration_reason": "Concept candidate only; needs 20px-scale sprite reconstruction, directions and engine acceptance.",
+      "prompt": "Isolated Xiu, Outer Day City directional officer, dark coat and red anchor straps on magenta key.",
+      "purpose": "岫的方向维护官服装、锚带与仪表比例基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/角色/saga_xiu_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; person rebuild target about 20px high",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "standing-reference"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "distinct silhouette",
+          "20px rebuild noted"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.fanzhi.character",
+      "kind": "character",
+      "location_id": "saga.inner-sea-dome",
+      "prohibited_integration_reason": "Concept candidate only; needs 20px-scale sprite reconstruction, directions and engine acceptance.",
+      "prompt": "Isolated Fanzhi, Inner Sea Dome hydrology calibrator with pressure suit and tide gauge on magenta key.",
+      "purpose": "反枝的潮汐校准服、压力件与水管比例基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/角色/saga_fanzhi_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; person rebuild target about 20px high",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "standing-reference"
+      ]
+    },
+    {
+      "alpha_processing": "chroma-key-removed",
+      "audit": {
+        "checks": [
+          "hard alpha",
+          "no text",
+          "distinct silhouette",
+          "20px rebuild noted"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.yang.character",
+      "kind": "character",
+      "location_id": "saga.no-down-city",
+      "prohibited_integration_reason": "Concept candidate only; needs 20px-scale sprite reconstruction, directions and engine acceptance.",
+      "prompt": "Isolated Yang, No-Down City mediator with asymmetric dual-gravity harness on magenta key.",
+      "purpose": "央的双重力背具与中和层维护比例基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/角色/saga_yang_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "isolated concept; person rebuild target about 20px high",
+        "height": 64,
+        "width": 64
+      },
+      "variants": [
+        "standing-reference"
+      ]
+    }
+  ],
+  "catalog_id": "saga-concept-candidates",
+  "planned_variants": [
+    {
+      "id": "saga.outer-day-city.during-rotation",
+      "prompt": "Outer Day City during rotation: temporary anchors and moving cargo, readable directional transition.",
+      "status": "specification-only"
+    },
+    {
+      "id": "saga.inner-sea-dome.during-rotation",
+      "prompt": "Inner Sea Dome during rotation: tide buffers absorb a visible but controlled directional transition.",
+      "status": "specification-only"
+    },
+    {
+      "id": "saga.no-down-city.during-rotation",
+      "prompt": "No-Down City during rotation: symmetric tethers and two orientations maintain coexistence.",
+      "status": "specification-only"
+    },
+    {
+      "id": "saga.axis-pillar.during-rotation",
+      "prompt": "Axis Pillar during rotation: repair gantries track periodic gravity reversal without core removal.",
+      "status": "specification-only"
+    },
+    {
+      "id": "saga.dual-pivot-chamber.during-rotation",
+      "prompt": "Dual Pivot Chamber during rotation: counter-rings pass through controlled synchronization around sealed core.",
+      "status": "specification-only"
+    }
+  ],
+  "schema_version": 1,
+  "title": "萨迦概念候选素材目录"
+}
