@@ -5,9 +5,9 @@
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
-> 最近一次路线图对账：P4 已完成验收；PR #7 正在从最新 `main` 的独立 worktree 定向重建。
-> 其范围固定为 22 个候选资产/目录实现文件与两份状态文档，合并前保持未完成。真实区块
-> activation scheduling 仍是独立 P3 后续项。
+> 最近一次路线图对账：PR #7 已通过内容、Native、Godot、Windows bridge、LFS 干净恢复和
+> 范围审查并合并，萨迦 16 张概念候选及其台账已进入 `main`。下一项是独立审计原萨迦
+> worktree 的后续生产素材；真实区块 activation scheduling 仍是独立 P3 后续项。
 
 ## 使用规则
 
@@ -55,8 +55,8 @@
 - [x] 把 PR #5 改为以 `main` 为 base，确认仍只有预期的 16 个内容、编译器、文档和 CI 文件。
 - [x] 重新运行 TypeScript、内容生成一致性、内容测试、CTest 和 Godot 合约检查。
 - [x] CI 全绿并完成审查后合并 PR #5。
-- [ ] 将萨迦概念候选台账和 16 张候选 PNG 放入独立分支；本地重建与内容/LFS 验证已完成，
-      实现 head 的远端 CI 8/8、LFS 干净恢复与范围审查已通过；等待最终状态 head CI 与合并后核销。
+- [x] 将萨迦概念候选台账和 16 张候选 PNG 放入独立分支；PR #7 已完成最终 CI、LFS 干净
+      恢复、范围审查与合并，所有图片仍为 `concept-candidate`，未接入正式场景。
 
 验收门槛：冻结决策、Schema、运行时 JSON 和可读规格在 `main` 上一致，错误引用和非法状态
 由 CI 阻止。
