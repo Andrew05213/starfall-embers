@@ -78,6 +78,37 @@ func _init() -> void:
 	var missing_results: Dictionary = host.drain_gravity_source_command_result_batch()
 	assert(missing_results.codes == PackedInt32Array([3]))
 
+	var stale_accepted := host.submit_gravity_source_commands(
+		1,
+		PackedInt32Array([0]),
+		PackedInt32Array([1]),
+		PackedInt64Array([44]),
+		PackedInt64Array([44]),
+		PackedVector2Array([Vector2(900.0, 900.0)]),
+		PackedVector2Array([Vector2(1.0, 0.0)]),
+		PackedFloat64Array([1.0]),
+		PackedFloat64Array([1.0]),
+		PackedInt64Array([0])
+	)
+	assert(stale_accepted)
+	var invalid_rejected := host.submit_gravity_source_commands(
+		1,
+		PackedInt32Array([0]),
+		PackedInt32Array([0]),
+		PackedInt64Array([45]),
+		PackedInt64Array([45]),
+		PackedVector2Array([Vector2.ZERO]),
+		PackedVector2Array([Vector2.ZERO]),
+		PackedFloat64Array([1.0]),
+		PackedFloat64Array([0.0]),
+		PackedInt64Array([0])
+	)
+	assert(not invalid_rejected)
+	var invalid_results: Dictionary = host.drain_gravity_source_command_result_batch()
+	assert(invalid_results.request_ids == PackedInt64Array([45]))
+	assert(invalid_results.codes == PackedInt32Array([1]))
+	assert(invalid_results.source_ids == PackedInt64Array([45]))
+
 	host.free()
 	print("native_gravity_bridge_smoke: PASS")
 	quit(0)
