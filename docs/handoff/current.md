@@ -434,3 +434,20 @@
 - The PR description now records the current 13-resource contract check, clean-clone LFS evidence,
   and remote CI. PR #7 remains Draft until this final status head passes both workflow events; then
   it may be promoted and merged.
+
+## 34. PR #7 merge and candidate-catalog acceptance (2026-08-15)
+
+- PR #7 final head `bc3bb83519b4c933f706eaa23e2488840822f83a` passed push run
+  `31820771004` and pull-request run `31820775109`; both workflows executed all four jobs and all
+  eight checks succeeded.
+- The PR was promoted from Draft and merged into `main` as
+  `97e2f864e3b61542dfcc6fd50a4d02be9e67652f`. Its final range is exactly 24 files: 22 catalog,
+  compiler, generated-document, and LFS asset files plus `todo.md` and this handoff.
+- Remote LFS recovery is accepted: 16/16 objects uploaded, clean-clone `git lfs pull` and
+  `git lfs fsck` passed, and every restored PNG matched its pointer OID/size and PNG signature.
+- The accepted inventory remains 10 environment, 3 device, and 3 character concept candidates;
+  five during-rotation variants remain specification-only. No candidate is production-ready or
+  connected to a formal Godot scene.
+- The protected main worktree and dirty Saga worktree were not staged, reset, overwritten, or
+  cleaned. Their later during-rotation images, production acceptance sources, and audit material
+  remain a separate next audit; P3 activation scheduling also remains independent.
