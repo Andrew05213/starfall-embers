@@ -386,3 +386,13 @@
 - This status worktree is `C:\tmp\starfall-status-after-p4-20260815` on
   `codex/update-status-after-p4`, based on the PR #24 merge commit. PR #23 remains to be closed after
   this status update enters `main`; PR #7 remains unchanged and is the next convergence work line.
+
+## 31. P4 status landing and superseded PR closure (2026-08-15)
+
+- PR #25 carried the final P4 acceptance ledger into `main` as merge commit
+  `0b53174af3ea796fb485152aab3a9eb66fbf7ba7`. Its push run `31817770344` and pull-request run
+  `31817775468` each executed all four jobs successfully.
+- Superseded Draft PR #23 was then closed with a note pointing to PR #24's final CI, xhigh review,
+  merge commit `c7af867`, and PR #25's status landing. No PR #23 implementation was merged.
+- P4 is now closed for the planned gravity/role/camera scope. PR #7 remains unchanged and is the
+  next independent convergence line; real chunk activation scheduling remains separate P3 work.
