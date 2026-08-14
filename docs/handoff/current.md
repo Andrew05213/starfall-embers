@@ -366,3 +366,23 @@
 - PR #24 must remain Draft until the final repair head passes real push and pull-request workflows
   and receives a new GPT-5.6-sol xhigh read-only review. PR #7 and the protected worktrees remain
   untouched.
+
+## 30. P4 final acceptance and merge (2026-08-15)
+
+- PR #24 final head `52f17d84417fce16c9177d019d12c4c96d2d4903` passed push run
+  `31816865318` and pull-request run `31816871128`. Each workflow executed `content`,
+  `native-core`, `windows-native-bridge`, and `godot-demo`; all eight jobs succeeded.
+- The final GPT-5.6-sol xhigh read-only review reported **NO BLOCKER**. It confirmed the stale gravity
+  result fix, batch atomicity, shared runtime ownership and ordering, reset/ID/TTL behavior,
+  current/predicted same-tick sampling, camera-only presentation, signed fields, diagnostics,
+  benchmark coverage, and separation from material DTO/P3 rules.
+- Non-blocking coverage opportunities remain for an explicit multi-command invalid batch, forced
+  three-step runtime catch-up, and delayed old-starseed teardown. They do not invalidate P4
+  acceptance and can be added in later regression hardening.
+- PR #24 was promoted to Ready and merged with merge commit
+  `c7af8677f2f8b1ea47cb0733c1d430855e0e5ba3`. P4's planned native gravity, role, camera,
+  diagnostics, and acceptance scope is complete. Real chunk activation scheduling remains a
+  separate P3 dependency and is not claimed here.
+- This status worktree is `C:\tmp\starfall-status-after-p4-20260815` on
+  `codex/update-status-after-p4`, based on the PR #24 merge commit. PR #23 remains to be closed after
+  this status update enters `main`; PR #7 remains unchanged and is the next convergence work line.
