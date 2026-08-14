@@ -254,6 +254,9 @@ P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为
       均通过，Godot shadow smoke 暴露 tick 断言仍写死为 `1`。最小修复已改为对比
       `native.get_tick()`，待新 head 的 push/PR 两组完整 CI 验证。
 - [ ] 最终 head 通过后再执行 GPT-5.6-sol xhigh 只读复审；若仍有 blocker，只更新状态文档、不修改实现、不转 Ready。真实区块 activation scheduling 仍是独立后续依赖。
+- [ ] 2026-08-14 对 `23b645b` 的两组真实 CI 已全绿，但 xhigh 终审发现桥接值校验会在生成
+      `invalid` 结果前提前返回并暴露旧结果。修复提交 `60dcf66` 已增加稳定结果替换与
+      stale-result 回归测试；保持未勾选，等待最终 head 的 push/PR CI 和新一轮 xhigh 只读复审。
 
 保护边界：不触碰主工作区、`game/project.godot`、PR #7、萨迦/LFS 素材、material DTO v1、材质编号、64×64 区块协议或 P3 激活调度。
 

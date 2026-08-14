@@ -347,3 +347,22 @@
   pull_request CI before review.
 - PR #24 remains Draft. GPT-5.6-sol xhigh review, Ready transition, merge, PR #23 closure, and PR #7
   convergence remain gated on both new workflows executing all steps and passing.
+
+## 29. PR #24 xhigh blocker repair (2026-08-14)
+
+- Head `23b645b636a0ae4874ed7ca3aa39bc175e4fda8a` passed real push run `31815021748`
+  and pull-request run `31815025219`; all four jobs in both workflows completed successfully.
+- The required GPT-5.6-sol xhigh read-only review then found one P1 blocker: bridge-side value
+  validation returned before replacing `gravity_command_results_`, so a rejected command such as
+  `radius=0` produced no correlated `invalid` result on a fresh host or exposed an older undrained
+  result.
+- Commit `60dcf66` clears the prior result batch before validation and returns one stable `invalid`
+  result per command when a structurally valid batch contains invalid values. The batch remains
+  atomic and is not submitted to `SimulationHost`. `native_gravity_bridge_smoke.gd` now reproduces
+  and guards the stale-result case.
+- Local verification for this repair: `tests/integration/check_godot_demo.py` passes with 13 scene
+  resources and `git diff --check` passes. This machine still has no usable local C++ compiler, and
+  the known Windows Godot 4.7.1 crash path is not accepted as verification.
+- PR #24 must remain Draft until the final repair head passes real push and pull-request workflows
+  and receives a new GPT-5.6-sol xhigh read-only review. PR #7 and the protected worktrees remain
+  untouched.
