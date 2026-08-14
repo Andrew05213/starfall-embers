@@ -1,6 +1,6 @@
 # 当前跨会话交接
 
-> Last verified: 2026-08-04
+> Last verified: 2026-08-14
 >
 > Repository: `Andrew05213/starfall-embers`
 >
@@ -329,3 +329,21 @@
 
 - For current head `57c6b22`, push run `31416891070` and pull-request run `31416895461` again completed before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` all have empty `steps` arrays and no logs.
 - PR #24 remains Draft. This is another infrastructure-only confirmation; no implementation, review, Ready transition, merge, or PR #23 closure was performed.
+
+## 28. Public-repository CI recovery and shadow smoke fix (2026-08-14)
+
+- After the repository was explicitly made Public, attempt 3 of push run `31502604619` and
+  pull_request run `31502608759` executed real steps on head `abb26f4`. In both workflows,
+  `content`, `native-core`, and `windows-native-bridge` completed successfully.
+- Both `godot-demo` jobs reached `Verify native gravity shadow transport` and failed the assertion at
+  `res://tests/gravity_shadow_smoke.gd:65`. The assertion still expected tick `1`, although adding the
+  uniform source had introduced a second `native.step_fixed()` call, so the authoritative sample
+  correctly reported the host's current tick `2`. Because the deferred smoke function stopped at the
+  assertion without quitting the SceneTree, both jobs appeared hung and were canceled after more than
+  20 minutes to release the runners and retrieve logs.
+- The minimal local fix compares the sampled tick with `native.get_tick()`; no runtime, DTO, material,
+  simulation, scene, or asset code changed. The Windows Godot 4.7.1 binary still exits through its
+  previously observed native crash path, so the new branch head requires fresh Linux push and
+  pull_request CI before review.
+- PR #24 remains Draft. GPT-5.6-sol xhigh review, Ready transition, merge, PR #23 closure, and PR #7
+  convergence remain gated on both new workflows executing all steps and passing.

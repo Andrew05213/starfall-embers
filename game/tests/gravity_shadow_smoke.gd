@@ -62,7 +62,7 @@ func _run() -> void:
 	assert(provider.set_mode(NativeGravityProvider.MODE_NATIVE_AUTHORITATIVE))
 	var authoritative := provider.sample(world.primary_gravity_center + Vector2(32.0, 0.0))
 	assert((authoritative["acceleration"] as Vector2).is_finite())
-	assert(int(authoritative["tick"]) == 1)
+	assert(int(authoritative["tick"]) == int(native.get_tick()))
 
 	provider.remove_gravity_source(source_id)
 	native.step_fixed()

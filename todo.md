@@ -1,6 +1,6 @@
 # 《坠星余烬》长期开发 TODO
 
-> Last revised: 2026-08-05
+> Last revised: 2026-08-14
 >
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
@@ -250,8 +250,12 @@ P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为
 - [ ] 收敛 provider ID 命名空间、MaterialWorld 常向量 shadow、带符号径向场、TTL 更新保留和 `accepted/invalid/duplicate/not_found` 结果码。
 - [ ] 收敛当前位置/预测位置同批同 tick 采样、15° `transitioning` 诊断、正式 F3 诊断叠层和 >30,720 px/s 子步上限 benchmark。
 - [ ] PR #24 的 push 与 pull_request 两组 CI 必须实际执行构建/测试并全绿；本机无 C++ 编译器，Godot headless 进程无法完成本地验证，不能替代远端验收。首轮及复现 run `30932413793`/`30932413229`、`30932535171`/`30932538978`、`30932633348`/`30932643547`、`31416784259`/`31416788760`，以及当前 head `57c6b22` 的 `31416891070`/`31416895461`，四个 job 均 `steps=[]`、无日志即失败，当前为 Actions runner 基础设施阻塞。
+- [ ] 2026-08-14 公开仓库后的两组 attempt 3 已实际执行；content、native-core 与 Windows bridge
+      均通过，Godot shadow smoke 暴露 tick 断言仍写死为 `1`。最小修复已改为对比
+      `native.get_tick()`，待新 head 的 push/PR 两组完整 CI 验证。
 - [ ] 最终 head 通过后再执行 GPT-5.6-sol xhigh 只读复审；若仍有 blocker，只更新状态文档、不修改实现、不转 Ready。真实区块 activation scheduling 仍是独立后续依赖。
 
 保护边界：不触碰主工作区、`game/project.godot`、PR #7、萨迦/LFS 素材、material DTO v1、材质编号、64×64 区块协议或 P3 激活调度。
 
-当前动作：等待 GitHub Actions 恢复后重新验证同一 head；不因无步骤失败修改实现或关闭保护。
+当前动作：提交并推送 shadow smoke tick 断言修复，等待新 head 两组完整 CI；全绿前保持 Draft，
+不启动终审或 PR #7 收敛。
