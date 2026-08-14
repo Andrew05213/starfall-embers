@@ -5,10 +5,9 @@
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
-> 最近一次路线图对账：PR #6、PR #5、PR #4、PR #8、PR #9、PR #10 与 PR #11 已合并并完成
-> 对应验收；PR #9 已取代并关闭旧 PR #3，P0.3、P2 与 P3 首批“固定向下 SAND↔AIR”已完成。
-> 下一项是从最新 main 开始 P4 原生重力分阶段迁移；PR #7 仍由独立工作线处理，不能与本批
-> 互相变基或混入。
+> 最近一次路线图对账：PR #24 已通过真实 push/PR CI 与 GPT-5.6-sol xhigh 终审并合并，P4
+> 原生重力、角色和镜头范围完成验收。下一项是从最新 main 定向收敛 PR #7；真实区块
+> activation scheduling 仍是独立 P3 后续项，不能与萨迦素材工作线混入。
 
 ## 使用规则
 
@@ -134,15 +133,15 @@
 
 目标：让“下方由世界决定”既真实又能被玩家稳定阅读。
 
-> P4 已启动。核心 worktree 为 `C:\tmp\starfall-p4-native-gravity-20260804`，实现提交
-> `c98e641` 已通过 Debug CTest 4/4；完整 P4 尚未合并，因此以下复选框保持未勾选。
+> P4 已通过 PR #24 完成最终收敛；merge commit 为 `c7af867`。最终 head `52f17d8` 的
+> push/PR 两组 CI 均 4/4 通过，GPT-5.6-sol xhigh 只读终审结论为 NO BLOCKER。
 
 - [x] 将单坠核径向重力、局部向量场和高速实体重力采样迁入原生核心。
-- [ ] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口（终审发现正式运行时 Native 局部场链路未推进，暂缓确认）。
+- [x] 统一角色贴地、跳跃、推进、朝向和镜头的重力查询接口。
 - [x] 保持角色物理与镜头表现解耦，镜头不得成为权威重力来源。
 - [x] 增加重力向量、坠核影响范围和异常速度调试叠层；区块激活叠层保留到真实 P3 activation batch。
-- [ ] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越（终审确认当前仅有合成零重力测试，待补高速跨场采样）。
-- [ ] 用井星已验收移动/镜头用例建立原生与现有行为回归对比（正式 Native provider 链路 blocker 未解除）。
+- [x] 覆盖重力方向快速变化、零重力、双向场边界和高速度穿越。
+- [x] 用井星已验收移动/镜头用例建立原生与现有行为回归对比。
 
 验收门槛：玩家无需依赖文字即可判断局部下方；移动、瞄准和镜头在场切换处不抖动、不翻转
 失控。
@@ -245,18 +244,14 @@ P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为
 
 ## P4 终审阻断修复状态（2026-08-05）
 
-- [ ] 从 `origin/main=cf4f6ee` 建立 `C:\tmp\starfall-p4-gravity-review-fixes-20260805` / `codex/p4-gravity-review-fixes`；运行链提交为 `b5d5741`，硬化提交为 `4b162c1`，实现 head `a20959d` 已推送并创建目标为 `main` 的 Draft PR #24，状态对账提交随后已推送。
-- [ ] 收敛共享 `NativeGravityRuntime`：正式主场景只持有一个 host/provider，按 30 Hz、最多三步推进，并在星种命令、Native tick、玩家采样之间保持固定顺序；reset 清理映射且不被旧星种延迟删除污染。
-- [ ] 收敛 provider ID 命名空间、MaterialWorld 常向量 shadow、带符号径向场、TTL 更新保留和 `accepted/invalid/duplicate/not_found` 结果码。
-- [ ] 收敛当前位置/预测位置同批同 tick 采样、15° `transitioning` 诊断、正式 F3 诊断叠层和 >30,720 px/s 子步上限 benchmark。
-- [ ] PR #24 的 push 与 pull_request 两组 CI 必须实际执行构建/测试并全绿；本机无 C++ 编译器，Godot headless 进程无法完成本地验证，不能替代远端验收。首轮及复现 run `30932413793`/`30932413229`、`30932535171`/`30932538978`、`30932633348`/`30932643547`、`31416784259`/`31416788760`，以及当前 head `57c6b22` 的 `31416891070`/`31416895461`，四个 job 均 `steps=[]`、无日志即失败，当前为 Actions runner 基础设施阻塞。
-- [ ] 2026-08-14 公开仓库后的两组 attempt 3 已实际执行；content、native-core 与 Windows bridge
-      均通过，Godot shadow smoke 暴露 tick 断言仍写死为 `1`。最小修复已改为对比
-      `native.get_tick()`，待新 head 的 push/PR 两组完整 CI 验证。
-- [ ] 最终 head 通过后再执行 GPT-5.6-sol xhigh 只读复审；若仍有 blocker，只更新状态文档、不修改实现、不转 Ready。真实区块 activation scheduling 仍是独立后续依赖。
-- [ ] 2026-08-14 对 `23b645b` 的两组真实 CI 已全绿，但 xhigh 终审发现桥接值校验会在生成
-      `invalid` 结果前提前返回并暴露旧结果。修复提交 `60dcf66` 已增加稳定结果替换与
-      stale-result 回归测试；保持未勾选，等待最终 head 的 push/PR CI 和新一轮 xhigh 只读复审。
+- [x] 从 `origin/main=cf4f6ee` 建立隔离 worktree 与 `codex/p4-gravity-review-fixes`，并通过 PR #24 合并最终修复。
+- [x] 收敛共享 `NativeGravityRuntime`：正式主场景只持有一个 host/provider，按 30 Hz、最多三步推进，并在星种命令、Native tick、玩家采样之间保持固定顺序；reset 清理映射且不被旧星种延迟删除污染。
+- [x] 收敛 provider ID 命名空间、MaterialWorld 常向量 shadow、带符号径向场、TTL 更新保留和 `accepted/invalid/duplicate/not_found` 结果码。
+- [x] 收敛当前位置/预测位置同批同 tick 采样、15° `transitioning` 诊断、正式 F3 诊断叠层和 >30,720 px/s 子步上限 benchmark。
+- [x] 最终 head `52f17d8` 的 push run `31816865318` 与 pull_request run `31816871128` 均实际执行 content、native-core、Windows bridge 和 Godot demo，全部通过。
+- [x] 修复 Godot shadow smoke 的过期 tick 断言，并以两组完整 CI 验证 `native.get_tick()` 对账。
+- [x] 完成 GPT-5.6-sol xhigh 最终只读复审，结论为 NO BLOCKER；真实区块 activation scheduling 仍是独立 P3 后续依赖。
+- [x] 修复桥接值校验提前返回导致的缺失/陈旧结果；提交 `60dcf66` 增加稳定 `invalid` 结果与 stale-result 回归测试。
 
 保护边界：不触碰主工作区、`game/project.godot`、PR #7、萨迦/LFS 素材、material DTO v1、材质编号、64×64 区块协议或 P3 激活调度。
 
