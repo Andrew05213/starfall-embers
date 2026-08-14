@@ -22,6 +22,7 @@ var velocity := Vector2.ZERO
 var seed_type := "gravity"
 
 var _material_world: Node
+var _gravity_provider: NativeGravityProvider
 var _gravity_source_id := -1
 var _is_anchored := false
 var _age := 0.0
@@ -34,9 +35,12 @@ func setup(
 	world: Node,
 	origin: Vector2,
 	initial_velocity: Vector2,
-	requested_type: String = "gravity"
+	requested_type: String = "gravity",
+	gravity_provider: NativeGravityProvider = null
 ) -> void:
 	_material_world = world
+	_gravity_provider = gravity_provider
+	process_physics_priority = -200
 	global_position = origin
 	velocity = initial_velocity
 	seed_type = requested_type if requested_type in ["gravity", "steam", "rupture"] else "gravity"
@@ -69,12 +73,11 @@ func _physics_process(delta: float) -> void:
 	_age += delta
 	if _is_anchored:
 		_anchor_age += delta
-		if (
-			_gravity_source_id >= 0
-			and is_instance_valid(_material_world)
-			and _material_world.has_method("update_gravity_source")
-		):
-			_material_world.call("update_gravity_source", _gravity_source_id, global_position)
+		if _gravity_source_id >= 0:
+			if is_instance_valid(_gravity_provider):
+				_gravity_provider.update_gravity_source(_gravity_source_id, global_position)
+			elif is_instance_valid(_material_world) and _material_world.has_method("update_gravity_source"):
+				_material_world.call("update_gravity_source", _gravity_source_id, global_position)
 		if _anchor_age >= anchored_lifetime:
 			_expire()
 		else:
@@ -219,15 +222,15 @@ func _anchor() -> void:
 	_is_anchored = true
 	velocity = Vector2.ZERO
 	_anchor_age = 0.0
-	if _material_world.has_method("add_gravity_source"):
+	if is_instance_valid(_gravity_provider):
+		# The visual lifetime owns removal; Native uses a permanent source so the
+		# second clock cannot expire it before the starseed's explicit cleanup.
+		_gravity_source_id = _gravity_provider.add_gravity_source(
+			global_position, gravity_strength, gravity_radius, -1.0
+		)
+	elif is_instance_valid(_material_world) and _material_world.has_method("add_gravity_source"):
 		_gravity_source_id = int(
-			_material_world.call(
-				"add_gravity_source",
-				global_position,
-				gravity_strength,
-				gravity_radius,
-				anchored_lifetime
-			)
+			_material_world.call("add_gravity_source", global_position, gravity_strength, gravity_radius, -1.0)
 		)
 	anchored.emit(global_position)
 	impacted.emit(global_position, seed_type)
@@ -251,12 +254,11 @@ func _expire() -> void:
 
 
 func _remove_gravity_source() -> void:
-	if (
-		_gravity_source_id >= 0
-		and is_instance_valid(_material_world)
-		and _material_world.has_method("remove_gravity_source")
-	):
-		_material_world.call("remove_gravity_source", _gravity_source_id)
+	if _gravity_source_id >= 0:
+		if is_instance_valid(_gravity_provider):
+			_gravity_provider.remove_gravity_source(_gravity_source_id)
+		elif is_instance_valid(_material_world) and _material_world.has_method("remove_gravity_source"):
+			_material_world.call("remove_gravity_source", _gravity_source_id)
 	_gravity_source_id = -1
 
 

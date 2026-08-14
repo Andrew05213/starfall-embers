@@ -11,9 +11,11 @@ namespace {
 
 using starfall::sim::GravityField;
 using starfall::sim::GravityFieldKind;
+using starfall::sim::GravityCommandError;
 using starfall::sim::GravitySourceCommand;
 using starfall::sim::GravitySourceCommandBatch;
 using starfall::sim::GravitySourceCommandKind;
+using starfall::sim::GravitySourceCommandResultCode;
 using starfall::sim::PrimaryGravity;
 using starfall::sim::SimulationHost;
 using starfall::sim::Vec2;
@@ -108,6 +110,13 @@ void test_commands_are_atomic_and_expire_on_ticks() {
     expiring.source.expires_at_tick = 2;
     field.apply({.commands = {expiring}});
     assert(field.source_count() == 1);
+		auto update = expiring;
+		update.kind = GravitySourceCommandKind::update;
+		update.request_id = 30;
+		update.source_id = 3;
+		update.source.center = {4.0, 0.0};
+		field.apply({.commands = {update}});
+		assert(field.sources()[0].expires_at_tick == 2);
     field.advance_tick();
     assert(field.source_count() == 1);
     field.advance_tick();
@@ -118,11 +127,39 @@ void test_commands_are_atomic_and_expire_on_ticks() {
     bool duplicate_rejected = false;
     try {
         field.apply({.commands = {duplicate}});
-    } catch (const std::invalid_argument&) {
+    } catch (const GravityCommandError& error) {
         duplicate_rejected = true;
+        assert(error.code() == GravitySourceCommandResultCode::duplicate);
+        assert(error.request_id() == duplicate.request_id);
     }
     assert(duplicate_rejected);
     assert(field.source_count() == 1);
+
+		bool missing_rejected = false;
+		try {
+			auto missing = add_radial(99);
+			missing.kind = GravitySourceCommandKind::update;
+			missing.source_id = 99;
+			field.apply({.commands = {missing}});
+		} catch (const GravityCommandError& error) {
+			missing_rejected = true;
+			assert(error.code() == GravitySourceCommandResultCode::not_found);
+		}
+		assert(missing_rejected);
+}
+
+void test_signed_radial_repulsion() {
+    GravityField field(30, PrimaryGravity{
+        .center = {10'000.0, 10'000.0},
+        .surface_radius = 10'000.0,
+        .surface_acceleration = 0.0,
+    });
+    auto repulsive = add_radial(77);
+    repulsive.source.strength = -100.0;
+    repulsive.source.center = {0.0, 0.0};
+    field.apply({.commands = {repulsive}});
+    const auto sample = field.sample({10.0, 0.0});
+    assert(sample.acceleration.x > 0.0);
 }
 
 void test_shared_host_field_and_replay() {
@@ -165,6 +202,7 @@ int main() {
     test_primary_curve_and_zero_gravity();
     test_local_fields_are_bounded_and_stable();
     test_commands_are_atomic_and_expire_on_ticks();
+    test_signed_radial_repulsion();
     test_shared_host_field_and_replay();
     return 0;
 }

@@ -215,8 +215,24 @@ func add_gravity_source(world_pos: Vector2, strength: float, radius: float, ttl:
 	var source_id := _next_gravity_source_id
 	_next_gravity_source_id += 1
 	_gravity_sources[source_id] = {
+		"field_kind": 0,
 		"position": to_local(world_pos),
 		"strength": strength,
+		"radius": maxf(radius, 1.0),
+		"ttl": ttl,
+	}
+	_stats_dirty = true
+	return source_id
+
+
+func add_uniform_gravity_source(world_pos: Vector2, vector: Vector2, radius: float, ttl: float) -> int:
+	var source_id := _next_gravity_source_id
+	_next_gravity_source_id += 1
+	_gravity_sources[source_id] = {
+		"field_kind": 1,
+		"position": to_local(world_pos),
+		"vector": global_transform.basis_xform_inv(vector),
+		"strength": 0.0,
 		"radius": maxf(radius, 1.0),
 		"ttl": ttl,
 	}
@@ -406,12 +422,17 @@ func _movement_directions(x: int, y: int, opposite_gravity: bool) -> Array[Vecto
 
 func _gravity_for_local_position(local_position: Vector2) -> Vector2:
 	var gravity := _primary_gravity_for_local_position(local_position)
-	for source_id in _gravity_sources:
+	var source_ids: Array = _gravity_sources.keys()
+	source_ids.sort()
+	for source_id in source_ids:
 		var source: Dictionary = _gravity_sources[source_id]
 		var source_delta: Vector2 = source["position"] - local_position
 		var distance := source_delta.length()
 		var radius: float = source["radius"]
-		if distance > 0.001 and distance < radius:
+		if int(source.get("field_kind", 0)) == 1:
+			if distance <= radius:
+				gravity += source.get("vector", Vector2.ZERO) as Vector2
+		elif distance > 0.001 and distance < radius:
 			var falloff := 1.0 - distance / radius
 			gravity += source_delta / distance * float(source["strength"]) * falloff
 	return gravity

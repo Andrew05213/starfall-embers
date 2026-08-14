@@ -14,6 +14,8 @@ int main() {
     constexpr std::size_t proxies = 4;
     constexpr std::uint64_t ticks = 120;
     constexpr std::uint64_t commands_per_tick = 256;
+    constexpr double gate1_velocity = 1'200.0;
+    constexpr double high_speed_velocity = 40'000.0;
     constexpr double frame_budget_ms = 1000.0 / 30.0;
 
     starfall::sim::SimulationHost host({
@@ -57,7 +59,10 @@ int main() {
             commands.spawns.push_back({
                 .request_id = tick * commands_per_tick + index + 1,
                 .position = {20.0, -500.0 - static_cast<double>(index % 64)},
-                .velocity = {1'200.0, 0.0},
+                .velocity = {
+                    index == 0 ? high_speed_velocity : gate1_velocity,
+                    0.0,
+                },
                 .lifetime_seconds = 0.55,
                 .gravity_scale = 1.3,
                 .collision_radius = 1.5,
@@ -98,6 +103,8 @@ int main() {
         << " proxies=" << proxies
         << " ticks=" << ticks
         << " commands=" << ticks * commands_per_tick
+        << " gate1_velocity=" << gate1_velocity
+        << " high_speed_velocity=" << high_speed_velocity
         << " peak_active=" << peak_active
         << " elapsed_ms=" << elapsed
         << " tick_average_ms=" << average_ms
@@ -110,5 +117,9 @@ int main() {
         << " gravity_substeps_peak=" << peak_substeps
         << " gravity_sample_limit_hits=" << sample_limit_hits
         << '\n';
+    if (sample_limit_hits == 0) {
+        std::cerr << "native ballistics benchmark: high-speed sample-limit scenario did not execute\n";
+        return 1;
+    }
     return 0;
 }

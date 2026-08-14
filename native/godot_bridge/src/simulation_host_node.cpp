@@ -295,6 +295,9 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
     const godot::PackedInt64Array& expires_at_ticks
 ) {
     const auto count = command_kinds.size();
+    gravity_command_results_.version = starfall::sim::gravity_transport_dto_version;
+    gravity_command_results_.tick = host_.tick();
+    gravity_command_results_.results.clear();
     if (dto_version != starfall::sim::gravity_transport_dto_version
         || field_kinds.size() != count || request_ids.size() != count
         || source_ids.size() != count
@@ -314,6 +317,17 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
             || !std::isfinite(vectors[index].x) || !std::isfinite(vectors[index].y)
             || !std::isfinite(strengths[index]) || !std::isfinite(radii[index])
             || radii[index] <= 0.0 || expires_at_ticks[index] < 0) {
+            for (std::int64_t result_index = 0; result_index < count; ++result_index) {
+                gravity_command_results_.results.push_back({
+                    .request_id = request_ids[result_index] > 0
+                        ? static_cast<std::uint64_t>(request_ids[result_index])
+                        : 0,
+                    .code = starfall::sim::GravitySourceCommandResultCode::invalid,
+                    .source_id = source_ids[result_index] > 0
+                        ? static_cast<std::uint64_t>(source_ids[result_index])
+                        : 0,
+                });
+            }
             return false;
         }
         const auto kind = static_cast<starfall::sim::GravitySourceCommandKind>(
@@ -339,8 +353,6 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
         batch.commands.push_back(command);
     }
 
-    gravity_command_results_.version = starfall::sim::gravity_transport_dto_version;
-    gravity_command_results_.tick = host_.tick();
     try {
         host_.submit_gravity_source_commands(std::move(batch));
         for (std::int64_t index = 0; index < count; ++index) {
@@ -350,6 +362,22 @@ bool StarfallSimulationHost::submit_gravity_source_commands(
                 .source_id = static_cast<std::uint64_t>(source_ids[index]),
             });
         }
+    } catch (const starfall::sim::GravityCommandError& error) {
+        for (std::int64_t index = 0; index < count; ++index) {
+            gravity_command_results_.results.push_back({
+                .request_id = static_cast<std::uint64_t>(request_ids[index]),
+                .code = starfall::sim::GravitySourceCommandResultCode::invalid,
+                .source_id = static_cast<std::uint64_t>(source_ids[index]),
+            });
+        }
+        for (auto& result : gravity_command_results_.results) {
+            if (result.request_id == error.request_id()) {
+                result.code = error.code();
+                result.source_id = error.source_id();
+                break;
+            }
+        }
+        return false;
     } catch (const std::exception&) {
         for (std::int64_t index = 0; index < count; ++index) {
             gravity_command_results_.results.push_back({

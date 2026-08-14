@@ -1,6 +1,6 @@
 # 《坠星余烬》长期开发 TODO
 
-> Last revised: 2026-08-03
+> Last revised: 2026-08-14
 >
 > 本计划描述依赖顺序和验收门槛，不承诺日历日期。当前分支、PR、worktree 和阻塞以
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
@@ -242,3 +242,23 @@ P4 diagnostics 对账（2026-08-04）：`codex/p4-gravity-diagnostics` 从 `orig
 P4 diagnostics 合并对账（2026-08-04）：PR #19 已合并到 `main`（`176d7c7`），最终 head `ee9d189` 的 push 与 pull_request 两组 CI 均 8/8 通过。诊断叠层、bridge smoke、1024²/32 场/4096 查询/300 tick 重力 benchmark、高速弹体指标和 P3 dirty-chunk 统计已验收；真实区块激活调度仍未完成，最终 GPT-5.6-sol xhigh 只读复审待 P4 全部实现后执行。
 P4 final review 对账（2026-08-04）：GPT-5.6-sol xhigh 只读终审结论为 BLOCKED；不修改代码。P0 blocker：`game/scripts/demo/player_controller.gd` 创建的私有 Native host 在正式运行时没有 `step_fixed()`，而 `main.gd`/`starseed.gd` 仍只向 MaterialWorld 写局部场，导致 GDExtension 正式运行不推进 Native tick/TTL，局部重力行为回退。P1 blocker：角色只采当前位置，未将当前位置与预测位置放入同一批，`GravityFrame.transitioning` 只覆盖零重力滞回；高速跨场/双向边界验收不成立。P1 blocker：`native_gravity_provider.gd` 的径向 source ID 与 `add_uniform_source()` 的 request counter 不共享命名空间，可能重复 ID；常向量场也未写入 GDScript shadow。非阻断风险：诊断叠层无正式消费者、bridge 异常码细分不足、弹体 benchmark 仍为 1200 px/s（子步 2、上限命中 0）、current 顶部历史状态仍需后续清理。所有 blocker 保留，后续修复需另行授权。
 最终落地对账（2026-08-04）：上述 blocker 文档已随 PR #21 进入 `main`，merge commit 为 `cc42889`；终审后未修改实现。后续只允许在新授权下处理 blocker，P4 不得标记为无条件完成。
+
+## P4 终审阻断修复状态（2026-08-05）
+
+- [ ] 从 `origin/main=cf4f6ee` 建立 `C:\tmp\starfall-p4-gravity-review-fixes-20260805` / `codex/p4-gravity-review-fixes`；运行链提交为 `b5d5741`，硬化提交为 `4b162c1`，实现 head `a20959d` 已推送并创建目标为 `main` 的 Draft PR #24，状态对账提交随后已推送。
+- [ ] 收敛共享 `NativeGravityRuntime`：正式主场景只持有一个 host/provider，按 30 Hz、最多三步推进，并在星种命令、Native tick、玩家采样之间保持固定顺序；reset 清理映射且不被旧星种延迟删除污染。
+- [ ] 收敛 provider ID 命名空间、MaterialWorld 常向量 shadow、带符号径向场、TTL 更新保留和 `accepted/invalid/duplicate/not_found` 结果码。
+- [ ] 收敛当前位置/预测位置同批同 tick 采样、15° `transitioning` 诊断、正式 F3 诊断叠层和 >30,720 px/s 子步上限 benchmark。
+- [ ] PR #24 的 push 与 pull_request 两组 CI 必须实际执行构建/测试并全绿；本机无 C++ 编译器，Godot headless 进程无法完成本地验证，不能替代远端验收。首轮及复现 run `30932413793`/`30932413229`、`30932535171`/`30932538978`、`30932633348`/`30932643547`、`31416784259`/`31416788760`，以及当前 head `57c6b22` 的 `31416891070`/`31416895461`，四个 job 均 `steps=[]`、无日志即失败，当前为 Actions runner 基础设施阻塞。
+- [ ] 2026-08-14 公开仓库后的两组 attempt 3 已实际执行；content、native-core 与 Windows bridge
+      均通过，Godot shadow smoke 暴露 tick 断言仍写死为 `1`。最小修复已改为对比
+      `native.get_tick()`，待新 head 的 push/PR 两组完整 CI 验证。
+- [ ] 最终 head 通过后再执行 GPT-5.6-sol xhigh 只读复审；若仍有 blocker，只更新状态文档、不修改实现、不转 Ready。真实区块 activation scheduling 仍是独立后续依赖。
+- [ ] 2026-08-14 对 `23b645b` 的两组真实 CI 已全绿，但 xhigh 终审发现桥接值校验会在生成
+      `invalid` 结果前提前返回并暴露旧结果。修复提交 `60dcf66` 已增加稳定结果替换与
+      stale-result 回归测试；保持未勾选，等待最终 head 的 push/PR CI 和新一轮 xhigh 只读复审。
+
+保护边界：不触碰主工作区、`game/project.godot`、PR #7、萨迦/LFS 素材、material DTO v1、材质编号、64×64 区块协议或 P3 激活调度。
+
+当前动作：提交并推送 shadow smoke tick 断言修复，等待新 head 两组完整 CI；全绿前保持 Draft，
+不启动终审或 PR #7 收敛。

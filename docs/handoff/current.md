@@ -1,6 +1,6 @@
 # 当前跨会话交接
 
-> Last verified: 2026-08-04
+> Last verified: 2026-08-14
 >
 > Repository: `Andrew05213/starfall-embers`
 >
@@ -299,3 +299,70 @@
 
 - The review-status document commit is now on `origin/main` as merge commit `cc428899cdb50bf2b2b4911bf29b86931cbfbca9` (PR #21 content, `85f4ce5`). This is the authoritative handoff tip after the review; no implementation files changed after the review.
 - The last verified full main workflow before this documentation-only landing was `30849263051` for `122e5e3`, all four jobs successful. The blocker record itself is documentation-only and does not alter runtime behavior or assets.
+
+## 23. P4 blocker repair worktree (2026-08-05)
+
+- Execution-time base was rechecked as `origin/main=cf4f6ee5c957340208155fbb6a4798c31838a3f4`. The isolated worktree is `C:\tmp\starfall-p4-gravity-review-fixes-20260805` on `codex/p4-gravity-review-fixes`; runtime ownership is `b5d5741`, transition hardening is `4b162c1`, implementation head `a20959d` is pushed, and the subsequent handoff/status commit is also pushed. PR #24 targets `main` as Draft.
+- This branch addresses the three reviewed blockers without merging PR #23: the formal scene now owns one `NativeGravityRuntime`/provider with a 30 Hz accumulator; starseed local fields are dual-written and explicitly removed; provider IDs are monotonic and independent from request IDs; uniform fields are mirrored by `MaterialWorld`; signed radial strength, TTL preservation, and precise gravity result codes are covered; current/predicted positions are sampled in one native tick; diagnostics and the high-speed sample-limit benchmark are wired into CI.
+- P4 remains unchecked until both push and pull-request CI execute real build/test steps and pass, followed by the requested GPT-5.6-sol xhigh read-only review. PR #23 remains Draft/unmerged and its historical no-step/no-log runner failure is retained as infrastructure history, not treated as proof of this branch.
+- Local verification: `tests/integration/check_godot_demo.py` passes and `git diff --check` passes. CMake cannot configure because this machine has no C++ compiler; local Godot 4.7.1 headless attempts did not complete, so remote CI is mandatory for native/Godot verification.
+- LFS recovery was isolated without deleting data: ACL dump `C:\tmp\starfall-lfs-tmp-acl-20260805.txt` was saved and the old `.git\lfs\tmp` was renamed to `.git\lfs\tmp.blocked-20260805`; no protected ACL was weakened. The main worktree, `game/project.godot`, PR #7, Saga/LFS assets, material DTO v1, material IDs, 64×64 chunk protocol, and P3 activation scheduling remain out of scope and untouched.
+
+## 24. PR #24 Actions infrastructure blocker (2026-08-05)
+
+- PR #24 remains Draft, base `main`, head `5eaba99bcae099539887db783d6d08e6ed90e484`. The push workflow run `30932413793` and pull-request workflow run `30932413229` both failed before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` each reported an empty `steps` array and no build/test log.
+- This is recorded as a runner/infrastructure blocker, not an implementation verdict. Do not change the repair commits, bypass branch protection, promote the PR, merge PR #23, or run the final GPT-5.6-sol xhigh review until a later run executes real steps and passes.
+- The protected main worktree and all previously listed Saga/LFS/material/activation boundaries remain unchanged. Next action is a fresh CI verification after Actions recovers; no code edits are authorized by this status update.
+- A second reproduction after the status push is confirmed: push run `30932535171` and pull-request run `30932538978` again completed all four jobs with empty `steps` and no logs. No further retries are being triggered in this turn.
+
+## 25. Latest PR #24 CI confirmation (2026-08-11)
+
+- The latest inspected implementation head is `e2573bba2ecb1f4a92c5c9108ce397d1e8b7fa69`. Push run `30932633348` and pull-request run `30932643547` both completed with failure before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` all report `steps=[]`, with no job logs available.
+- PR #24 remains Draft and no GPT-5.6-sol xhigh review, Ready transition, merge, or PR #23 closure is authorized until both workflow events execute real build/test steps and pass. This status-only update does not alter implementation files.
+
+## 26. Current status-head CI confirmation (2026-08-11)
+
+- After the documentation status head `7ad7909`, push run `31416784259` and pull-request run `31416788760` again completed with failure before any job step; all four jobs report `steps=[]` and no logs.
+- PR #24 remains Draft. The implementation is unchanged, and the GPT-5.6-sol xhigh review/Ready/merge sequence remains deferred until real CI steps execute and both workflow events pass.
+
+## 27. Latest runner check (2026-08-11)
+
+- For current head `57c6b22`, push run `31416891070` and pull-request run `31416895461` again completed before any job step; `content`, `native-core`, `windows-native-bridge`, and `godot-demo` all have empty `steps` arrays and no logs.
+- PR #24 remains Draft. This is another infrastructure-only confirmation; no implementation, review, Ready transition, merge, or PR #23 closure was performed.
+
+## 28. Public-repository CI recovery and shadow smoke fix (2026-08-14)
+
+- After the repository was explicitly made Public, attempt 3 of push run `31502604619` and
+  pull_request run `31502608759` executed real steps on head `abb26f4`. In both workflows,
+  `content`, `native-core`, and `windows-native-bridge` completed successfully.
+- Both `godot-demo` jobs reached `Verify native gravity shadow transport` and failed the assertion at
+  `res://tests/gravity_shadow_smoke.gd:65`. The assertion still expected tick `1`, although adding the
+  uniform source had introduced a second `native.step_fixed()` call, so the authoritative sample
+  correctly reported the host's current tick `2`. Because the deferred smoke function stopped at the
+  assertion without quitting the SceneTree, both jobs appeared hung and were canceled after more than
+  20 minutes to release the runners and retrieve logs.
+- The minimal local fix compares the sampled tick with `native.get_tick()`; no runtime, DTO, material,
+  simulation, scene, or asset code changed. The Windows Godot 4.7.1 binary still exits through its
+  previously observed native crash path, so the new branch head requires fresh Linux push and
+  pull_request CI before review.
+- PR #24 remains Draft. GPT-5.6-sol xhigh review, Ready transition, merge, PR #23 closure, and PR #7
+  convergence remain gated on both new workflows executing all steps and passing.
+
+## 29. PR #24 xhigh blocker repair (2026-08-14)
+
+- Head `23b645b636a0ae4874ed7ca3aa39bc175e4fda8a` passed real push run `31815021748`
+  and pull-request run `31815025219`; all four jobs in both workflows completed successfully.
+- The required GPT-5.6-sol xhigh read-only review then found one P1 blocker: bridge-side value
+  validation returned before replacing `gravity_command_results_`, so a rejected command such as
+  `radius=0` produced no correlated `invalid` result on a fresh host or exposed an older undrained
+  result.
+- Commit `60dcf66` clears the prior result batch before validation and returns one stable `invalid`
+  result per command when a structurally valid batch contains invalid values. The batch remains
+  atomic and is not submitted to `SimulationHost`. `native_gravity_bridge_smoke.gd` now reproduces
+  and guards the stale-result case.
+- Local verification for this repair: `tests/integration/check_godot_demo.py` passes with 13 scene
+  resources and `git diff --check` passes. This machine still has no usable local C++ compiler, and
+  the known Windows Godot 4.7.1 crash path is not accepted as verification.
+- PR #24 must remain Draft until the final repair head passes real push and pull-request workflows
+  and receives a new GPT-5.6-sol xhigh read-only review. PR #7 and the protected worktrees remain
+  untouched.
