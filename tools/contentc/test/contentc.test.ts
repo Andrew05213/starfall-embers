@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   type DecisionRegister,
   type Slice,
+  type AssetCatalog,
   validateSchemas,
   validateSemantics
 } from "../src/index.js";
@@ -17,14 +18,43 @@ const register = JSON.parse(
 const slice = JSON.parse(
   readFileSync(resolve(root, "content/src/slices/well-saga-first-slice.json"), "utf8")
 ) as Slice;
+const catalog = JSON.parse(
+  readFileSync(resolve(root, "content/src/assets/saga-concept-candidates.json"), "utf8")
+) as AssetCatalog;
 
 function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
-test("accepts the canonical decision register and first slice", () => {
-  assert.doesNotThrow(() => validateSchemas(register, slice));
-  assert.doesNotThrow(() => validateSemantics(register, slice));
+test("accepts the canonical decision register, first slice and Saga catalog", () => {
+  assert.doesNotThrow(() => validateSchemas(register, slice, catalog));
+  assert.doesNotThrow(() => validateSemantics(register, slice, catalog));
+});
+
+test("rejects incomplete, production, unisolated and alpha-missing Saga candidates", () => {
+  const missing = clone(catalog);
+  missing.assets.pop();
+  assert.throws(() => validateSemantics(register, slice, missing), /missing required Saga candidate/);
+
+  const production = clone(catalog);
+  (production.assets[0] as unknown as Record<string, unknown>).status = "production-ready";
+  assert.throws(() => validateSchemas(register, slice, production), /asset catalog schema/);
+
+  const unisolated = clone(catalog);
+  unisolated.assets[0].source_path = "game/assets/saga_outer_day_city.png";
+  assert.throws(() => validateSemantics(register, slice, unisolated), /candidate may not reference game\/assets/);
+
+  const missingAlpha = clone(catalog);
+  missingAlpha.assets.find((asset) => asset.kind === "device")!.alpha_processing = "not-applicable";
+  assert.throws(() => validateSemantics(register, slice, missingAlpha), /missing alpha processing/);
+
+  const wrongSize = clone(catalog);
+  wrongSize.assets.find((asset) => asset.kind === "character")!.target_size = {
+    width: 160,
+    height: 90,
+    concept_aspect: "wrong"
+  };
+  assert.throws(() => validateSemantics(register, slice, wrongSize), /wrong target size/);
 });
 
 test("rejects duplicate decision ids", () => {

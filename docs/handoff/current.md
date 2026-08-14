@@ -1,6 +1,6 @@
 # 当前跨会话交接
 
-> Last verified: 2026-08-14
+> Last verified: 2026-08-15
 >
 > Repository: `Andrew05213/starfall-embers`
 >
@@ -396,3 +396,41 @@
   merge commit `c7af867`, and PR #25's status landing. No PR #23 implementation was merged.
 - P4 is now closed for the planned gravity/role/camera scope. PR #7 remains unchanged and is the
   next independent convergence line; real chunk activation scheduling remains separate P3 work.
+
+## 32. PR #7 directed convergence snapshot (2026-08-15)
+
+- Execution-time `origin/main` is `c03196d2dbc1ad5da9db6f4abd2c3e6b2ac5cadb`. The isolated
+  worktree is `C:\tmp\starfall-pr7-convergence-20260815` on
+  `codex/pr7-convergence-20260815`; implementation commit is `ce3ff5b`.
+- Old PR #7 remains Draft on remote head `edfaa6ff9befa66e771fd392b9def64547c7f4f7`. Only implementation
+  commit `1863ffd` was replayed; three obsolete status commits were excluded. The rebuilt range is
+  22 implementation files plus this handoff and `todo.md`, for exactly 24 files relative to `main`.
+- The catalog contains 10 environment, 3 device, and 3 character images. All 16 entries remain
+  `concept-candidate`; five during-rotation variants remain `specification-only`. No image is wired
+  into a formal Godot scene.
+- All 16 PNG index objects are standard Git LFS pointers. Their pointer OIDs and sizes match the
+  smudged working files, every file has a valid PNG signature, and `git lfs fsck` passes.
+- Local content verification passes: `npm ci`, `npx tsc --noEmit`, `npm run validate`, `build`,
+  `check`, and 7/7 tests. The generated worktree has no unexpected diff, the Python Godot contract
+  check passes for 13 scene resources, and `git diff --check` passes.
+- Native configure cannot run because this machine has no C++ compiler. The real Godot 4.7.1
+  headless import did not return within the bounded local run; its eight generated untracked `.uid`
+  cache files were removed and no Godot process remains. Remote Native/Godot CI is mandatory.
+- `game/project.godot`, P4/native code, during-rotation PNGs, production audit material, and the
+  protected main/Saga worktrees remain untouched. Next steps are a lease-guarded remote branch
+  update, LFS upload and clean-clone recovery, then real push/PR CI and review.
+
+## 33. PR #7 final implementation validation (2026-08-15)
+
+- The lease-guarded update replaced old remote head `edfaa6f` with implementation/status head
+  `d1ca86bbf9eeddc70da0c609488b60908374684c`; all 16 LFS objects were uploaded.
+- Clean clone `C:\tmp\starfall-pr7-lfs-verify-20260815` completed `git lfs pull` and `git lfs fsck`.
+  All 16 restored files matched pointer OIDs and sizes and had valid PNG signatures.
+- Push run `31820124745` and pull-request run `31820127787` each executed `content`, `native-core`,
+  `windows-native-bridge`, and `godot-demo`; all eight jobs succeeded.
+- Final read-only scope review found no blocker: PR #7 is clean and mergeable against
+  `main=c03196d`, contains exactly 24 expected files in two commits, and contains no `game/`,
+  `native/`, `tools/art`, during-rotation PNG, production audit, or `game/project.godot` path.
+- The PR description now records the current 13-resource contract check, clean-clone LFS evidence,
+  and remote CI. PR #7 remains Draft until this final status head passes both workflow events; then
+  it may be promoted and merged.
