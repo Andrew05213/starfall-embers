@@ -6,8 +6,9 @@
 > [`docs/handoff/current.md`](docs/handoff/current.md) 为准。
 >
 > 最近一次路线图对账：PR #7 已通过内容、Native、Godot、Windows bridge、LFS 干净恢复和
-> 范围审查并合并，萨迦 16 张概念候选及其台账已进入 `main`。下一项是独立审计原萨迦
-> worktree 的后续生产素材；真实区块 activation scheduling 仍是独立 P3 后续项。
+> 范围审查并合并，萨迦 16 张概念候选及其台账已进入 `main`。5 张轮坠中概念图已在独立
+> 分支完成本地收纳和验证，但因仓库为公开仓库，仍待项目负责人明确批准公开推送；后续生产
+> 素材与 A0.5 staging 继续保持独立审计。真实区块 activation scheduling 仍是独立 P3 后续项。
 
 ## 使用规则
 
@@ -57,6 +58,9 @@
 - [x] CI 全绿并完成审查后合并 PR #5。
 - [x] 将萨迦概念候选台账和 16 张候选 PNG 放入独立分支；PR #7 已完成最终 CI、LFS 干净
       恢复、范围审查与合并，所有图片仍为 `concept-candidate`，未接入正式场景。
+- [ ] 将 5 张轮坠中概念图从 `specification-only` 提升为 `concept-candidate`；本地提交
+      `88a0e0c` 已通过内容与 LFS 验证，待明确批准向公开仓库推送、Draft PR CI、干净克隆
+      LFS 恢复和合并验收后再勾选。
 
 验收门槛：冻结决策、Schema、运行时 JSON 和可读规格在 `main` 上一致，错误引用和非法状态
 由 CI 阻止。

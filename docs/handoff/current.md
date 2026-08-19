@@ -451,3 +451,31 @@
 - The protected main worktree and dirty Saga worktree were not staged, reset, overwritten, or
   cleaned. Their later during-rotation images, production acceptance sources, and audit material
   remain a separate next audit; P3 activation scheduling also remains independent.
+
+## 35. Saga during-rotation concept batch (2026-08-20)
+
+- Execution-time `origin/main` is `81e0107a08dcb1452bf048094a9464783ffece06`. The isolated
+  worktree is `C:\tmp\starfall-saga-during-concepts-20260820` on
+  `codex/saga-during-rotation-concepts`; implementation commit is
+  `88a0e0ca3be6a8daffe7f0e073b66452b5848055`.
+- The implementation range is exactly ten files: five during-rotation concept PNGs, the authored
+  and generated catalog, generated design documentation, and two minimal `contentc` compiler/test
+  files. It contains no A0.1-A0.5 production review bundle, `game/assets`, staging scene,
+  `tools/art`, native code, `game/project.godot`, or protected-worktree change.
+- The catalog now contains 21 approved `concept-candidate` entries: 15 environments, three devices,
+  and three characters. The five during-rotation entries retain explicit production-integration
+  prohibitions and are not connected to a formal Godot scene.
+- All five working PNGs match the audited source SHA-256 values and are 1672x941. Their staged index
+  objects are standard Git LFS pointers whose OIDs and sizes match the working files; `git lfs fsck`
+  passes.
+- Local verification passes: `npx tsc --noEmit`, `npm run validate`, `build`, `check`, 7/7 content
+  tests, deterministic generated-output comparison, and `git diff --check`. `npm ci` reports one
+  high-severity development dependency advisory; dependency changes are intentionally outside this
+  art-only batch.
+- The repository is public. Publishing would disclose the five previously unpushed concept PNGs and
+  their LFS objects. The push was not performed because explicit approval for that public disclosure
+  is still required; no Draft PR exists yet. After approval, push the branch, verify clean-clone LFS
+  recovery, create a Draft PR to `main`, and require real push/pull-request CI before merge.
+- The original dirty Saga worktree remains untouched apart from read-only source access. Its
+  production acceptance bundles and A0.5 staging remain a separate review line, including the open
+  standard-versus-low-sensory VFX distinction issue.
