@@ -167,6 +167,7 @@ export function validateSemantics(register: DecisionRegister, slice: Slice, cata
   const requiredIds = [
     "saga.outer-day-city.pre-rotation", "saga.inner-sea-dome.pre-rotation", "saga.no-down-city.pre-rotation", "saga.axis-pillar.pre-rotation", "saga.dual-pivot-chamber.pre-rotation",
     "saga.outer-day-city.post-rotation", "saga.inner-sea-dome.post-rotation", "saga.no-down-city.post-rotation", "saga.axis-pillar.post-rotation", "saga.dual-pivot-chamber.post-rotation",
+    "saga.outer-day-city.during-rotation", "saga.inner-sea-dome.during-rotation", "saga.no-down-city.during-rotation", "saga.axis-pillar.during-rotation", "saga.dual-pivot-chamber.during-rotation",
     "saga.outer-light-clock.device", "saga.inner-tide-clock.device", "saga.neutral-free-gyroscope.device",
     "saga.xiu.character", "saga.fanzhi.character", "saga.yang.character"
   ];
@@ -185,9 +186,9 @@ export function validateSemantics(register: DecisionRegister, slice: Slice, cata
     requireCondition(asset.prohibited_integration_reason.length > 10, `candidate lacks integration prohibition: ${asset.id}`);
   }
   for (const id of requiredIds) requireCondition(assetIds.has(id), `missing required Saga candidate: ${id}`);
-  requireCondition(catalog.assets.length === requiredIds.length, "Saga catalog must contain exactly the 16 generated candidates");
+  requireCondition(catalog.assets.length === requiredIds.length, "Saga catalog must contain exactly the 21 approved concept candidates");
   const planned = catalog.planned_variants ?? [];
-  requireCondition(planned.length === 5 && planned.every((variant) => variant.id.endsWith(".during-rotation")), "catalog must reserve five during-rotation specifications");
+  requireCondition(planned.length === 0, "approved during-rotation candidates may not remain specification-only");
 }
 
 function markdownEscape(value: string): string {
@@ -265,7 +266,7 @@ function renderSlice(slice: Slice): string {
 
 function renderAssetCatalog(catalog: AssetCatalog): string {
   const rows = catalog.assets.map((asset) => `| \`${asset.id}\` | ${asset.kind} | ${asset.location_id} | ${asset.target_size.width}×${asset.target_size.height} | ${asset.alpha_processing} | ${asset.audit.conclusion} |`).join("\n");
-  const future = (catalog.planned_variants ?? []).map((variant) => `- \`${variant.id}\`：仅保留生成规格，未纳入本批 16 张候选。`).join("\n");
+  const future = (catalog.planned_variants ?? []).map((variant) => `- \`${variant.id}\`：仅保留生成规格，未纳入本批 ${catalog.assets.length} 张候选。`).join("\n");
   return [
     `# ${catalog.title}`,
     "",
@@ -276,10 +277,7 @@ function renderAssetCatalog(catalog: AssetCatalog): string {
     "| ID | 类型 | 地点 | 目标逻辑尺寸 | Alpha | 审核 |",
     "| --- | --- | --- | --- | --- | --- |",
     rows,
-    "",
-    "## 预留的轮坠中规格",
-    "",
-    future,
+    ...(future ? ["", "## 预留的轮坠中规格", "", future] : []),
     ""
   ].join("\n");
 }

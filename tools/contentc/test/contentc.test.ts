@@ -27,6 +27,9 @@ function clone<T>(value: T): T {
 }
 
 test("accepts the canonical decision register, first slice and Saga catalog", () => {
+  assert.equal(catalog.assets.length, 21);
+  assert.equal(catalog.assets.filter((asset) => asset.id.endsWith(".during-rotation")).length, 5);
+  assert.equal(catalog.planned_variants?.length ?? 0, 0);
   assert.doesNotThrow(() => validateSchemas(register, slice, catalog));
   assert.doesNotThrow(() => validateSemantics(register, slice, catalog));
 });
@@ -55,6 +58,17 @@ test("rejects incomplete, production, unisolated and alpha-missing Saga candidat
     concept_aspect: "wrong"
   };
   assert.throws(() => validateSemantics(register, slice, wrongSize), /wrong target size/);
+
+  const demotedDuringRotation = clone(catalog);
+  const duringRotation = demotedDuringRotation.assets.find((asset) => asset.id.endsWith(".during-rotation"));
+  assert.ok(duringRotation);
+  demotedDuringRotation.assets = demotedDuringRotation.assets.filter((asset) => asset !== duringRotation);
+  demotedDuringRotation.planned_variants = [{
+    id: duringRotation.id,
+    status: "specification-only",
+    prompt: "Demoted after approval, which must remain invalid."
+  }];
+  assert.throws(() => validateSemantics(register, slice, demotedDuringRotation), /missing required Saga candidate/);
 });
 
 test("rejects duplicate decision ids", () => {

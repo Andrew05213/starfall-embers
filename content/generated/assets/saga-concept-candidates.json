@@ -301,6 +301,146 @@
       ]
     },
     {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "physical transition",
+          "no text or UI",
+          "readable depth"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.outer-day-city.during-rotation",
+      "kind": "environment",
+      "location_id": "saga.outer-day-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Outer Day City during rotation; controlled gravity transition via anchors, rails and tethered lamps.",
+      "purpose": "轮坠中外昼城的锚定、货轨与方向过渡基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_outer_day_city_during_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "during-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "physical transition",
+          "no arrows or UI",
+          "controlled water"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.inner-sea-dome.during-rotation",
+      "kind": "environment",
+      "location_id": "saga.inner-sea-dome",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Inner Sea Dome during rotation; water routed by tide buffers and floodgates, physical gravity cues only.",
+      "purpose": "轮坠中内海穹的潮汐缓冲与受控转向基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_inner_sea_dome_during_rotation_v02.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "during-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "no single down",
+          "no text or UI",
+          "coexistence readable"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.no-down-city.during-rotation",
+      "kind": "environment",
+      "location_id": "saga.no-down-city",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga No-Down City during rotation; symmetric tethers and opposed platforms preserve coexistence.",
+      "purpose": "轮坠中无下城双面共存与对称系留基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_no_down_city_during_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "during-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "physical gravity cues",
+          "no text or UI",
+          "core retained"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.axis-pillar.during-rotation",
+      "kind": "environment",
+      "location_id": "saga.axis-pillar",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Axis Pillar during rotation; repair gantries track a controlled gravity transition and retain core support.",
+      "purpose": "轮坠中贯轴柱的检修与受控坠律过渡基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_axis_pillar_during_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "during-rotation"
+      ]
+    },
+    {
+      "alpha_processing": "not-applicable",
+      "audit": {
+        "checks": [
+          "palette",
+          "mechanical stress",
+          "no text or UI",
+          "sealed core retained"
+        ],
+        "conclusion": "approved-concept-candidate"
+      },
+      "id": "saga.dual-pivot-chamber.during-rotation",
+      "kind": "environment",
+      "location_id": "saga.dual-pivot-chamber",
+      "prohibited_integration_reason": "Concept composition only; requires pixel-grid reconstruction and engine asset acceptance.",
+      "prompt": "Saga Dual Pivot Chamber during rotation; counter-rings synchronize around sealed retained core.",
+      "purpose": "轮坠中双枢同步、封存坠核与机械应力基准。",
+      "source_path": "project_reference/坠星余烬_当前设定与素材_2026-07-26/素材/萨迦/概念候选/区域/saga_dual_pivot_chamber_during_rotation_v01.png",
+      "status": "concept-candidate",
+      "target_size": {
+        "concept_aspect": "16:9 concept; not tileable",
+        "height": 90,
+        "width": 160
+      },
+      "variants": [
+        "during-rotation"
+      ]
+    },
+    {
       "alpha_processing": "chroma-key-removed",
       "audit": {
         "checks": [
@@ -470,33 +610,6 @@
     }
   ],
   "catalog_id": "saga-concept-candidates",
-  "planned_variants": [
-    {
-      "id": "saga.outer-day-city.during-rotation",
-      "prompt": "Outer Day City during rotation: temporary anchors and moving cargo, readable directional transition.",
-      "status": "specification-only"
-    },
-    {
-      "id": "saga.inner-sea-dome.during-rotation",
-      "prompt": "Inner Sea Dome during rotation: tide buffers absorb a visible but controlled directional transition.",
-      "status": "specification-only"
-    },
-    {
-      "id": "saga.no-down-city.during-rotation",
-      "prompt": "No-Down City during rotation: symmetric tethers and two orientations maintain coexistence.",
-      "status": "specification-only"
-    },
-    {
-      "id": "saga.axis-pillar.during-rotation",
-      "prompt": "Axis Pillar during rotation: repair gantries track periodic gravity reversal without core removal.",
-      "status": "specification-only"
-    },
-    {
-      "id": "saga.dual-pivot-chamber.during-rotation",
-      "prompt": "Dual Pivot Chamber during rotation: counter-rings pass through controlled synchronization around sealed core.",
-      "status": "specification-only"
-    }
-  ],
   "schema_version": 1,
   "title": "萨迦概念候选素材目录"
 }
