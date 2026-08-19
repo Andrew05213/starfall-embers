@@ -472,10 +472,12 @@
   tests, deterministic generated-output comparison, and `git diff --check`. `npm ci` reports one
   high-severity development dependency advisory; dependency changes are intentionally outside this
   art-only batch.
-- The repository is public. Publishing would disclose the five previously unpushed concept PNGs and
-  their LFS objects. The push was not performed because explicit approval for that public disclosure
-  is still required; no Draft PR exists yet. After approval, push the branch, verify clean-clone LFS
-  recovery, create a Draft PR to `main`, and require real push/pull-request CI before merge.
+- The project owner explicitly approved publishing the five images to the public repository. The
+  branch and all five LFS objects are pushed, and [Draft PR #28](https://github.com/Andrew05213/starfall-embers/pull/28)
+  targets `main`.
+- Clean clone `C:\tmp\starfall-saga-during-lfs-verify-20260820` completed `git lfs pull` and
+  `git lfs fsck`. All five restored PNGs match their recorded SHA-256 values and sizes and have valid
+  PNG signatures. Final push/pull-request CI and scope review remain required before merge.
 - The original dirty Saga worktree remains untouched apart from read-only source access. Its
   production acceptance bundles and A0.5 staging remain a separate review line, including the open
   standard-versus-low-sensory VFX distinction issue.
